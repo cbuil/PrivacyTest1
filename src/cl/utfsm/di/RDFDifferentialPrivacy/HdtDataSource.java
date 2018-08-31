@@ -2,6 +2,9 @@ package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import java.io.IOException;
 
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Node_URI;
+import org.apache.jena.graph.Node_Variable;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -37,8 +40,7 @@ public class HdtDataSource
      * @throws IOException
      *             if the file cannot be loaded
      */
-    public HdtDataSource(String hdtFile)
-            throws IOException
+    public HdtDataSource(String hdtFile) throws IOException
     {
         datasource = HDTManager.mapIndexedHDT(hdtFile, null);
         dictionary = new NodeDictionary(datasource.getDictionary());
@@ -49,10 +51,44 @@ public class HdtDataSource
     public static int getCountResults(TriplePath triplePath,
             String variableName)
     {
+        String subject = "";
+        if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
+        {
+            subject = "<" + triplePath.asTriple().getMatchSubject().getURI()
+                    + ">";
+        }
+        else if (triplePath.asTriple()
+                .getMatchSubject() instanceof Node_Variable)
+        {
+            subject = "?" + triplePath.asTriple().getMatchSubject().getName();
+        }
+        String pred = "";
+        if (triplePath.asTriple().getMatchPredicate() instanceof Node_URI)
+        {
+            pred = "<" + triplePath.asTriple().getMatchPredicate().getURI()
+                    + ">";
+        }
+        else if (triplePath.asTriple()
+                .getMatchPredicate() instanceof Node_Variable)
+        {
+            pred = "?" + triplePath.asTriple().getMatchPredicate().getName();
+        }
+        String object = "";
+        if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
+        {
+            object = "<" + triplePath.asTriple().getMatchObject().getURI()
+                    + ">";
+        }
+        else if (triplePath.asTriple()
+                .getMatchObject() instanceof Node_Variable)
+        {
+            object = "?" + triplePath.asTriple().getMatchObject().getName();
+        }
+
         variableName = variableName.replace("“", "").replace("”", "");
         String countQueryString = "select (count(" + variableName
-                + ") as ?count) where { " + triplePath.toString()
-                + "} GROUP BY " + variableName + " " + "ORDER BY "
+                + ") as ?count) where { " + subject + " " + pred + " " + object
+                + " " + "} GROUP BY " + variableName + " " + "ORDER BY "
                 + variableName + " DESC (?count) LIMIT 1 ";
 
         Query query = QueryFactory.create(countQueryString);
