@@ -1,0 +1,8 @@
+SELECT ?v2 WHERE {
+  ?v2 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country20> .
+  ?v0 <http://purl.org/goodrelations/offers> ?v2 .
+  ?v2 <http://purl.org/goodrelations/price> ?v3 .
+  ?v2 <http://purl.org/goodrelations/validFrom> ?v4 .
+  ?v2 <http://purl.org/goodrelations/validThrough> ?v5 .
+ }
+ 
