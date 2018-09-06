@@ -106,12 +106,25 @@ public class Run
                     ElementPathBlock bgpBlock = (ElementPathBlock) element;
                     PathBlock pb = bgpBlock.getPattern();
                     Iterator bgpIt = pb.getList().iterator();
+                    int i = 0;
+                    int maxfreq = 0;
                     while (bgpIt.hasNext())
                     {
                         TriplePath triple = (TriplePath) bgpIt.next();
-                        HdtDataSource.getCountResults(triple, countVariable);
+                        int res = HdtDataSource.getCountResults(triple, countVariable);
+                        if(i==0){
+                            maxfreq = res;
+                        }
+                        else{
+                            if(bgpIt.hasNext()){
+                                maxfreq = Math.max(maxfreq, res);
+                            }
+                        }
+                        i++;
                         System.out.println(triple.toString());
+
                     }
+                    System.out.println("maxfreq: "+ maxfreq);
                 }
             }
         }
