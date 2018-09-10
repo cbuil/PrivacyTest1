@@ -5,12 +5,7 @@ import java.io.IOException;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Node_URI;
 import org.apache.jena.graph.Node_Variable;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
@@ -106,6 +101,14 @@ public class HdtDataSource
             }
             else
                 return 0;
+        }
+    }
+
+    public static ResultSet ExcecuteQuery(Query query){
+        try(QueryExecution qexec = QueryExecutionFactory.create(query,triples)){
+            ResultSet results = qexec.execSelect();
+            results = ResultSetFactory.copyResults(results) ;
+            return results;
         }
     }
 
