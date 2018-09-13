@@ -93,9 +93,10 @@ public class Run
             Query q = QueryFactory.create(queryString);
 
             //se obtiene el encabezado de la query
-            String queryHead = q.toString();
-            String[] splitedQuery = queryHead.split("\\{");
-            queryHead = splitedQuery[0];
+            String queryHead = "SELECT " + countVariable +"\nWHERE\n";
+            //String queryHead = q.toString();
+            //String[] splitedQuery = queryHead.split("\\{");
+            //queryHead = splitedQuery[0];
 
             ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
             List<Element> elementList = queryPattern.getElements();
