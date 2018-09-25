@@ -123,8 +123,13 @@ public class Run
                     int i = 0;
                     int elasticStability = 0;
                     int mostFreqValue = 1;
+
+                    //set para guardar los ancestros
+                    HashSet<String> ancestors = new HashSet<String>();
+
                     //lista para guardar los triples
                     List<String> triples = new ArrayList<String>();
+
                     while (bgpIt.hasNext())
                     {
                         TriplePath triple = (TriplePath) bgpIt.next();
@@ -151,14 +156,27 @@ public class Run
 
                         int res = HdtDataSource.getCountResults(triple, countVariable);
                         if(i==0 && bgpIt.hasNext()){
+                            //se agregan los primeros ancestros
+                            extractor(triple,ancestors);
+
                             TriplePath auxtriple = (TriplePath) bgpIt.next();
                             System.out.println(auxtriple.toString());
                             triples.add(tripleFixer(auxtriple));
                             int res2 = HdtDataSource.getCountResults(auxtriple, countVariable);
-                            elasticStability = Math.max(res*1,res2*1);
+                            if(extractor(auxtriple,ancestors)){
+                                elasticStability = res*1 + res2*1 + 1*1;
+                            }
+                            else{
+                                elasticStability = Math.max(res*1,res2*1);
+                            }
                         }
                         else{
-                            elasticStability = Math.max(mostFreqValue*1, res * elasticStability);
+                            if(extractor(triple,ancestors)){
+                                elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
+                            }
+                            else {
+                                elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
+                            }
                         }
                         i++;
                         System.out.println(triple.toString());
@@ -175,7 +193,7 @@ public class Run
             e1.printStackTrace();
         }
     }
-    public static String queryCreator(List<String> triples, String queryHead){
+    private static String queryCreator(List<String> triples, String queryHead){
         String finalQuery = queryHead + "{";
         Iterator<String> Iterator = triples.iterator();
         while(Iterator.hasNext()){
@@ -185,7 +203,7 @@ public class Run
         return finalQuery;
     }
 
-    public static String tripleFixer(TriplePath triplePath){
+    private static String tripleFixer(TriplePath triplePath){
 
         String subject = "";
         if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
@@ -225,7 +243,7 @@ public class Run
     }
 
 
-    public static int getMaxFreq(HashMap<String,Integer> map) {
+    private static int getMaxFreq(HashMap<String,Integer> map) {
         String highestMap = null;
         int mostFreqValue = 0;
         for (Map.Entry<String, Integer> entry : map.entrySet()) {
@@ -235,6 +253,42 @@ public class Run
             }
         }
         return mostFreqValue;
+    }
+
+    private static boolean extractor(TriplePath triplePath, HashSet<String> ancestors){
+        String subject = "";
+        if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
+        {
+            subject = "<" + triplePath.asTriple().getMatchSubject().getURI()
+                    + ">";
+        }
+        else if (triplePath.asTriple()
+                .getMatchSubject() instanceof Node_Variable)
+        {
+            subject = "?" + triplePath.asTriple().getMatchSubject().getName();
+        }
+
+        String object = "";
+        if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
+        {
+            object = "<" + triplePath.asTriple().getMatchObject().getURI()
+                    + ">";
+        }
+        else if (triplePath.asTriple()
+                .getMatchObject() instanceof Node_Variable)
+        {
+            object = "?" + triplePath.asTriple().getMatchObject().getName();
+        }
+        if(ancestors.contains(subject)||ancestors.contains(object)){
+            ancestors.add(subject);
+            ancestors.add(object);
+            return true;
+        }
+        else{
+            ancestors.add(subject);
+            ancestors.add(object);
+            return false;
+        }
     }
 
 }
