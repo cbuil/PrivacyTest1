@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
+import java.math.*;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -11,6 +12,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.query.*;
 import org.apache.jena.graph.Node_URI;
 import org.apache.jena.graph.Node_Variable;
@@ -29,9 +31,13 @@ import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 import org.apache.jena.sparql.syntax.ElementTriplesBlock;
 
+import static symjava.symbolic.Symbol.*;
+import symjava.bytecode.BytecodeFunc;
+import symjava.symbolic.*;
+
 public class Run
 {
-    public static void main(String[] args) throws IOException
+    public static void main(String[] args) throws IOException, CloneNotSupportedException
     {
         // create Options object
         Options options = new Options();
@@ -88,7 +94,7 @@ public class Run
             {
                 System.out.println("Missing COUNT variable");
             }
-            
+
             HdtDataSource hdtDataSource = new HdtDataSource("resources/watdiv.10M.hdt");
             Query q = QueryFactory.create(queryString);
 
@@ -123,6 +129,10 @@ public class Run
                     int i = 0;
                     int elasticStability = 0;
                     int mostFreqValue = 1;
+                    List<String> aux1 = new ArrayList<>();
+                    Join r1 = new Join();
+                    Join r1prime = new Join();
+                    List<String> joinVariables = new ArrayList<String>();
 
                     //set para guardar los ancestros
                     HashSet<String> ancestors = new HashSet<String>();
@@ -135,6 +145,27 @@ public class Run
                         TriplePath triple = (TriplePath) bgpIt.next();
 
                         if(i!=0) {
+                            //check para ver con cual de las variables del triple se esta haciendo el join
+                            aux1 = triplePartExtractor(triple);
+                            if(ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))){
+                                joinVariables = new ArrayList<String>();
+                                joinVariables.add(aux1.get(0));
+                                mostFreqValue = maxFreq(aux1.get(0),r1prime);
+                            }
+                            else if(!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))){
+                                joinVariables = new ArrayList<String>();
+                                joinVariables.add(aux1.get(2));
+                                mostFreqValue = maxFreq(aux1.get(2),r1prime);
+                            }
+                            else if(ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))){
+                                joinVariables = new ArrayList<String>();
+                                joinVariables.add(aux1.get(0));
+                                joinVariables.add(aux1.get(2));
+                                mostFreqValue = Math.min(maxFreq(aux1.get(0),r1prime),maxFreq(aux1.get(2),r1prime));
+                            }
+
+/* Metodo antiguo para realizar el JOIN y calcular la maxima frecuencia en la tabla resultante
+
                             String finalQuery = queryCreator(triples, queryHead);
                             //set resultante de la ejecucion de la query de los triples hasta ahora
                             ResultSet results = HdtDataSource.ExcecuteQuery(QueryFactory.create(finalQuery));
@@ -150,6 +181,7 @@ public class Run
                                 }
                             }
                             mostFreqValue = getMaxFreq(hmap);
+*/
                         }
                         //se agrega el triple actual a la lista de triples
                         triples.add(tripleFixer(triple));
@@ -159,20 +191,50 @@ public class Run
                             //se agregan los primeros ancestros
                             extractor(triple,ancestors);
 
+                            // se obtiene el siguiente triple, se agrega a la lista de triples y se obtiene la maxfreq
                             TriplePath auxtriple = (TriplePath) bgpIt.next();
                             System.out.println(auxtriple.toString());
                             triples.add(tripleFixer(auxtriple));
                             int res2 = HdtDataSource.getCountResults(auxtriple, countVariable);
+
+                            // check para obtener la(s) variable(s) conecta(n) los triples en el JOIN
+                            aux1 = triplePartExtractor(triple);
+                            aux1.remove(1);
+                            List<String> aux2 = triplePartExtractor(auxtriple);
+                            aux2.remove(1);
+
+                            // check para ver que variables participan en el primer JOIN
+                            if(aux2.contains(aux1.get(0))){
+                                joinVariables.add(aux1.get(0));
+                                if(aux2.contains(aux1.get(1))){
+                                    joinVariables.add(aux1.get(1));
+                                }
+                            }
+                            else if(aux2.contains(aux1.get(1))){
+                                joinVariables.add(aux1.get(1));
+                            }
+
+                            //Check para ver si existen ancestros en comun
                             if(extractor(auxtriple,ancestors)){
                                 elasticStability = res*1 + res2*1 + 1*1;
+
+                                //se define el Join para ser utilizado en la siguiente iteracion
+                                r1 = new Join(triple);
+                                r1prime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                             else{
                                 elasticStability = Math.max(res*1,res2*1);
+
+                                //se define el Join para ser utilizado en la siguiente iteracion
+                                r1 = new Join(triple);
+                                r1prime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                         }
                         else{
+                            //Check para ver si existen ancestros en comun
                             if(extractor(triple,ancestors)){
                                 elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
+                                r1prime = new Join(joinVariables,(HashSet)ancestors.clone(), r1prime, triple);
                             }
                             else {
                                 elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
@@ -203,8 +265,8 @@ public class Run
         return finalQuery;
     }
 
-    private static String tripleFixer(TriplePath triplePath){
-
+    public static List<String> triplePartExtractor(TriplePath triplePath){
+        List<String> result = new ArrayList<String>();
         String subject = "";
         if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
         {
@@ -238,7 +300,17 @@ public class Run
         {
             object = "?" + triplePath.asTriple().getMatchObject().getName();
         }
-        String result = subject + " " + pred + " " + object;
+        result.add(subject);
+        result.add(pred);
+        result.add(object);
+
+        return result;
+    }
+
+
+    private static String tripleFixer(TriplePath triplePath){
+        List<String> aux = triplePartExtractor(triplePath);
+        String result = aux.get(0) + " " + aux.get(1) + " " + aux.get(2);
         return result;
     }
 
@@ -256,29 +328,9 @@ public class Run
     }
 
     private static boolean extractor(TriplePath triplePath, HashSet<String> ancestors){
-        String subject = "";
-        if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
-        {
-            subject = "<" + triplePath.asTriple().getMatchSubject().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchSubject() instanceof Node_Variable)
-        {
-            subject = "?" + triplePath.asTriple().getMatchSubject().getName();
-        }
-
-        String object = "";
-        if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
-        {
-            object = "<" + triplePath.asTriple().getMatchObject().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchObject() instanceof Node_Variable)
-        {
-            object = "?" + triplePath.asTriple().getMatchObject().getName();
-        }
+        List<String> aux = triplePartExtractor(triplePath);
+        String subject = aux.get(0);
+        String object = aux.get(2);
         if(ancestors.contains(subject)||ancestors.contains(object)){
             ancestors.add(subject);
             ancestors.add(object);
@@ -291,4 +343,58 @@ public class Run
         }
     }
 
+    private static int maxFreq(String var, Join join) throws CloneNotSupportedException{
+        // Caso base
+        if(join.triple!=null){
+            return HdtDataSource.getCountResults(join.triple, var);
+        }
+        // Se revisa la cantidad de variables presentes en V'
+        if(join.joinVariables.size()>1){
+            //se crean dos join diferentes cada uno con una de las joinVariables
+            Join left = (Join)join.clone();
+            left.joinVariables.remove(1);
+
+            Join right= (Join)join.clone();
+            right.joinVariables.remove(0);
+
+            return Math.min(maxFreq(left.joinVariables.get(0), left),maxFreq(right.joinVariables.get(0), right));
+        }
+        else{
+            // Casos para ver a que lado del join pertenece la variable  (a1 in r1 || a1 in r2)
+            if(join.ancestors.contains(var)){
+                return maxFreq(var, join.Left) * HdtDataSource.getCountResults(join.Right , join.joinVariables.get(0));
+            }
+            else{
+                return HdtDataSource.getCountResults(join.Right, var) * maxFreq(join.joinVariables.get(0), join.Left);
+            }
+        }
+    }
+
+}
+
+class Join implements Cloneable{
+    List<String> joinVariables;          // Variables que se ocupan para hacer el Join
+    HashSet<String> ancestors;           // Variables que componen al lado izquierdo del join (otro join)
+    //HashSet<String> newVariables;        // Variables que componen al Triple que con el que se esta haciendo JOIN
+    Join Left;                           // El join izquierdo con el que se esta haciendo JOIN
+    TriplePath Right;                    // El triple con el que se esta haciendo JOIN
+    TriplePath triple;        // Para el caso base en caso de que el primer join contenga solo triples
+
+    Join(List<String> j, HashSet<String> a,  Join L, TriplePath R){
+        joinVariables = j;
+        ancestors = a;
+        //newVariables = n;
+        Left = L;
+        Right = R;
+    }
+
+    Join(TriplePath l){
+        triple = l;
+    }
+    Join(){}
+
+    @Override
+    public Object clone() throws CloneNotSupportedException{
+        return super.clone();
+    }
 }

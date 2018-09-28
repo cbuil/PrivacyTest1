@@ -1,6 +1,8 @@
 package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Node_URI;
@@ -46,39 +48,11 @@ public class HdtDataSource
     public static int getCountResults(TriplePath triplePath,
             String variableName)
     {
-        String subject = "";
-        if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
-        {
-            subject = "<" + triplePath.asTriple().getMatchSubject().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchSubject() instanceof Node_Variable)
-        {
-            subject = "?" + triplePath.asTriple().getMatchSubject().getName();
-        }
-        String pred = "";
-        if (triplePath.asTriple().getMatchPredicate() instanceof Node_URI)
-        {
-            pred = "<" + triplePath.asTriple().getMatchPredicate().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchPredicate() instanceof Node_Variable)
-        {
-            pred = "?" + triplePath.asTriple().getMatchPredicate().getName();
-        }
-        String object = "";
-        if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
-        {
-            object = "<" + triplePath.asTriple().getMatchObject().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchObject() instanceof Node_Variable)
-        {
-            object = "?" + triplePath.asTriple().getMatchObject().getName();
-        }
+        List<String> aux = Run.triplePartExtractor(triplePath);
+        String subject = aux.get(0);
+        String pred = aux.get(1);
+        String object = aux.get(2);
+
 
         variableName = variableName.replace("“", "").replace("”", "");
         String countQueryString = "select (count(" + variableName
