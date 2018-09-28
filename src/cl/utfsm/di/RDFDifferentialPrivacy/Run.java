@@ -238,6 +238,7 @@ public class Run
                             }
                             else {
                                 elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
+                                r1prime = new Join(joinVariables,(HashSet)ancestors.clone(), r1prime, triple);
                             }
                         }
                         i++;
