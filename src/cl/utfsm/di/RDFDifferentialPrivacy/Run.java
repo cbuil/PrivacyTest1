@@ -58,6 +58,7 @@ public class Run
             String queryString = "";
             String queryFile = "";
             String countVariable = "";
+
             CommandLine cmd = parser.parse(options, args);
             if (cmd.hasOption("q"))
             {
@@ -124,6 +125,13 @@ public class Run
                     ElementPathBlock bgpBlock = (ElementPathBlock) element;
                     PathBlock pb = bgpBlock.getPattern();
                     Iterator bgpIt = pb.getList().iterator();
+
+                    // delta parameter: use 1/n^2, with n = 100000
+                    double DELTA = 1 / (Math.pow(100000,2));
+
+                    // privacy budget
+                    double EPSILON = 0.1;
+
 
                     //int maxfreq = obtainMaxFreq(bgpIt, countVariable);
                     int i = 0;
@@ -259,14 +267,31 @@ public class Run
                             }
                         }
                         i++;
-                        if(i==7){
-                            System.out.println("asd");
-                        }
                         System.out.println(triple.toString());
                     }
 
 
                     System.out.println("Elastic Stability: "+ elasticStability);
+
+                    double beta = EPSILON / (2 * Math.log(2 / DELTA));
+                    double smoothSensitivity = Math.exp(-1 * beta) * elasticStability;
+
+                    //Se agrega el ruido con Laplace
+                    double scale = 2 * smoothSensitivity / EPSILON;
+                    Random random = new Random();
+                    double u = 0.5 - random.nextDouble();
+                    double finalResult = -Math.signum(u) * scale * Math.log(1 - 2*Math.abs(u));
+
+                    Query query = QueryFactory.create(queryString);
+                    ResultSet results = HdtDataSource.ExcecuteQuery(query);
+                    QuerySolution soln = results.nextSolution();
+                    RDFNode x = soln.get("count");
+                    int result = x.asLiteral().getInt();
+                    finalResult = result + finalResult;
+                    System.out.println("Final Result: "+ finalResult);
+
+
+
                 }
             }
         }
@@ -275,6 +300,7 @@ public class Run
             // TODO Auto-generated catch block
             e1.printStackTrace();
         }
+
     }
     private static String queryCreator(List<String> triples, String queryHead){
         String finalQuery = queryHead + "{";
@@ -390,6 +416,8 @@ public class Run
             }
         }
     }
+
+
 
 }
 
