@@ -129,9 +129,11 @@ public class Run
                     int i = 0;
                     int elasticStability = 0;
                     int mostFreqValue = 1;
+                    int res = 0;
+                    int res2 = 0;
                     List<String> aux1 = new ArrayList<>();
                     Join r1 = new Join();
-                    Join r1prime = new Join();
+                    Join rprime = new Join();
                     List<String> joinVariables = new ArrayList<String>();
 
                     //set para guardar los ancestros
@@ -147,22 +149,21 @@ public class Run
                         if(i!=0) {
                             //check para ver con cual de las variables del triple se esta haciendo el join
                             aux1 = triplePartExtractor(triple);
-                            if(ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))){
+                            if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
                                 joinVariables = new ArrayList<String>();
                                 joinVariables.add(aux1.get(0));
-                                mostFreqValue = maxFreq(aux1.get(0),r1prime);
-                            }
-                            else if(!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))){
+                                mostFreqValue = maxFreq(aux1.get(0), rprime);
+                            } else if (!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
                                 joinVariables = new ArrayList<String>();
                                 joinVariables.add(aux1.get(2));
-                                mostFreqValue = maxFreq(aux1.get(2),r1prime);
-                            }
-                            else if(ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))){
+                                mostFreqValue = maxFreq(aux1.get(2), rprime);
+                            } else if (ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
                                 joinVariables = new ArrayList<String>();
                                 joinVariables.add(aux1.get(0));
                                 joinVariables.add(aux1.get(2));
-                                mostFreqValue = Math.min(maxFreq(aux1.get(0),r1prime),maxFreq(aux1.get(2),r1prime));
+                                mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime), maxFreq(aux1.get(2), rprime));
                             }
+                        }
 
 /* Metodo antiguo para realizar el JOIN y calcular la maxima frecuencia en la tabla resultante
 
@@ -182,11 +183,10 @@ public class Run
                             }
                             mostFreqValue = getMaxFreq(hmap);
 */
-                        }
-                        //se agrega el triple actual a la lista de triples
-                        triples.add(tripleFixer(triple));
 
-                        int res = HdtDataSource.getCountResults(triple, countVariable);
+                        //se agrega el triple actual a la lista de triples
+
+                        triples.add(tripleFixer(triple));
                         if(i==0 && bgpIt.hasNext()){
                             //se agregan los primeros ancestros
                             extractor(triple,ancestors);
@@ -195,7 +195,6 @@ public class Run
                             TriplePath auxtriple = (TriplePath) bgpIt.next();
                             System.out.println(auxtriple.toString());
                             triples.add(tripleFixer(auxtriple));
-                            int res2 = HdtDataSource.getCountResults(auxtriple, countVariable);
 
                             // check para obtener la(s) variable(s) conecta(n) los triples en el JOIN
                             aux1 = triplePartExtractor(triple);
@@ -214,34 +213,58 @@ public class Run
                                 joinVariables.add(aux1.get(1));
                             }
 
+                            //se calcula la maxfreq de la(s) variables que participa(n) en el JOIN
+                            if(joinVariables.size()>1){
+                                // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
+                                res = Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
+                                res2 = Math.min(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)), HdtDataSource.getCountResults(auxtriple, joinVariables.get(1)));
+                            }
+                            else{
+                                res = HdtDataSource.getCountResults(triple, joinVariables.get(0));
+                                res2 = HdtDataSource.getCountResults(auxtriple, joinVariables.get(0));
+                            }
+
+
                             //Check para ver si existen ancestros en comun
                             if(extractor(auxtriple,ancestors)){
                                 elasticStability = res*1 + res2*1 + 1*1;
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
                                 r1 = new Join(triple);
-                                r1prime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
+                                rprime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                             else{
                                 elasticStability = Math.max(res*1,res2*1);
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
                                 r1 = new Join(triple);
-                                r1prime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
+                                rprime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                         }
                         else{
+                            //Calculo de la maxfreq de la parte derecha del join
+                            if(joinVariables.size()>1){
+                                // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
+                                res = Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
+                            }
+                            else{
+                                res = HdtDataSource.getCountResults(triple, joinVariables.get(0));
+                            }
+
                             //Check para ver si existen ancestros en comun
                             if(extractor(triple,ancestors)){
                                 elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
-                                r1prime = new Join(joinVariables,(HashSet)ancestors.clone(), r1prime, triple);
+                                rprime = new Join(joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
                             else {
                                 elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
-                                r1prime = new Join(joinVariables,(HashSet)ancestors.clone(), r1prime, triple);
+                                rprime = new Join(joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
                         }
                         i++;
+                        if(i==7){
+                            System.out.println("asd");
+                        }
                         System.out.println(triple.toString());
                     }
 
