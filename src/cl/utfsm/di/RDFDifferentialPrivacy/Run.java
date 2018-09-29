@@ -139,8 +139,7 @@ public class Run
                     //set para guardar los ancestros
                     HashSet<String> ancestors = new HashSet<String>();
 
-                    //lista para guardar los triples
-                    List<String> triples = new ArrayList<String>();
+
 
                     while (bgpIt.hasNext())
                     {
@@ -184,9 +183,7 @@ public class Run
                             mostFreqValue = getMaxFreq(hmap);
 */
 
-                        //se agrega el triple actual a la lista de triples
 
-                        triples.add(tripleFixer(triple));
                         if(i==0 && bgpIt.hasNext()){
                             //se agregan los primeros ancestros
                             extractor(triple,ancestors);
@@ -194,7 +191,7 @@ public class Run
                             // se obtiene el siguiente triple, se agrega a la lista de triples y se obtiene la maxfreq
                             TriplePath auxtriple = (TriplePath) bgpIt.next();
                             System.out.println(auxtriple.toString());
-                            triples.add(tripleFixer(auxtriple));
+
 
                             // check para obtener la(s) variable(s) conecta(n) los triples en el JOIN
                             aux1 = triplePartExtractor(triple);
