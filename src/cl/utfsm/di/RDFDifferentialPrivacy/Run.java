@@ -1,27 +1,11 @@
 package cl.utfsm.di.RDFDifferentialPrivacy;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.*;
-import java.math.*;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.SerializationUtils;
-import org.apache.jena.query.*;
-import org.apache.jena.graph.Node_URI;
-import org.apache.jena.graph.Node_Variable;
+import org.apache.commons.cli.*;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.PathBlock;
@@ -31,9 +15,10 @@ import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 import org.apache.jena.sparql.syntax.ElementTriplesBlock;
 
-import static symjava.symbolic.Symbol.*;
-import symjava.bytecode.BytecodeFunc;
-import symjava.symbolic.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.*;
 
 public class Run
 {
@@ -151,25 +136,6 @@ public class Run
 
                     while (bgpIt.hasNext())
                     {
-/* Metodo antiguo para realizar el JOIN y calcular la maxima frecuencia en la tabla resultante
-
-                            String finalQuery = queryCreator(triples, queryHead);
-                            //set resultante de la ejecucion de la query de los triples hasta ahora
-                            ResultSet results = HdtDataSource.ExcecuteQuery(QueryFactory.create(finalQuery));
-
-                            HashMap<String, Integer> hmap = new HashMap<String, Integer>();
-                            for (; results.hasNext(); ) {
-                                QuerySolution soln = results.nextSolution();
-                                String sol = soln.get(countVariable).toString();
-                                if (hmap.containsKey(sol)) {
-                                    hmap.put(sol, hmap.get(sol) + 1);
-                                } else {
-                                    hmap.put(sol, 1);
-                                }
-                            }
-                            mostFreqValue = getMaxFreq(hmap);
-*/
-
                         TriplePath triple = (TriplePath) bgpIt.next();
                         if(i==0 && bgpIt.hasNext()){
                             //se agregan los primeros ancestros
