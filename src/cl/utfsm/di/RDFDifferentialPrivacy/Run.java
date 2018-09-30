@@ -151,27 +151,6 @@ public class Run
 
                     while (bgpIt.hasNext())
                     {
-                        TriplePath triple = (TriplePath) bgpIt.next();
-
-                        if(i!=0) {
-                            //check para ver con cual de las variables del triple se esta haciendo el join
-                            aux1 = Helper.triplePartExtractor(triple);
-                            if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
-                                joinVariables = new ArrayList<String>();
-                                joinVariables.add(aux1.get(0));
-                                mostFreqValue = maxFreq(aux1.get(0), rprime);
-                            } else if (!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
-                                joinVariables = new ArrayList<String>();
-                                joinVariables.add(aux1.get(2));
-                                mostFreqValue = maxFreq(aux1.get(2), rprime);
-                            } else if (ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
-                                joinVariables = new ArrayList<String>();
-                                joinVariables.add(aux1.get(0));
-                                joinVariables.add(aux1.get(2));
-                                mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime), maxFreq(aux1.get(2), rprime));
-                            }
-                        }
-
 /* Metodo antiguo para realizar el JOIN y calcular la maxima frecuencia en la tabla resultante
 
                             String finalQuery = queryCreator(triples, queryHead);
@@ -191,7 +170,7 @@ public class Run
                             mostFreqValue = getMaxFreq(hmap);
 */
 
-
+                        TriplePath triple = (TriplePath) bgpIt.next();
                         if(i==0 && bgpIt.hasNext()){
                             //se agregan los primeros ancestros
                             Helper.extractor(triple,ancestors);
@@ -247,6 +226,23 @@ public class Run
                             }
                         }
                         else{
+                            //check para ver con cual de las variables del triple se esta haciendo el join
+                            aux1 = Helper.triplePartExtractor(triple);
+                            if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
+                                joinVariables = new ArrayList<String>();
+                                joinVariables.add(aux1.get(0));
+                                mostFreqValue = maxFreq(aux1.get(0), rprime);
+                            } else if (!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
+                                joinVariables = new ArrayList<String>();
+                                joinVariables.add(aux1.get(2));
+                                mostFreqValue = maxFreq(aux1.get(2), rprime);
+                            } else if (ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
+                                joinVariables = new ArrayList<String>();
+                                joinVariables.add(aux1.get(0));
+                                joinVariables.add(aux1.get(2));
+                                mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime), maxFreq(aux1.get(2), rprime));
+                            }
+
                             //Calculo de la maxfreq de la parte derecha del join
                             if(joinVariables.size()>1){
                                 // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
