@@ -100,7 +100,7 @@ public class Run
             Query q = QueryFactory.create(queryString);
 
             //se obtiene el encabezado de la query
-            String queryHead = "SELECT " + countVariable +"\nWHERE\n";
+            //String queryHead = "SELECT " + countVariable +"\nWHERE\n";
             //String queryHead = q.toString();
             //String[] splitedQuery = queryHead.split("\\{");
             //queryHead = splitedQuery[0];
@@ -186,7 +186,6 @@ public class Run
                             List<String> aux2 = Helper.triplePartExtractor(auxtriple);
                             aux2.remove(1);
 
-                            // check para ver que variables participan en el primer JOIN
                             if(aux2.contains(aux1.get(0))){
                                 joinVariables.add(aux1.get(0));
                                 if(aux2.contains(aux1.get(1))){
@@ -215,18 +214,19 @@ public class Run
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
                                 r1 = new Join(triple);
-                                rprime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
+                                rprime = new Join("r1prime",joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                             else{
                                 elasticStability = Math.max(res*1,res2*1);
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
                                 r1 = new Join(triple);
-                                rprime = new Join(joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
+                                rprime = new Join("r1prime",joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                         }
                         else{
-                            //check para ver con cual de las variables del triple se esta haciendo el join
+                            // check para ver con cual de las variables del triple se esta haciendo el join
+                            // y calcular su maxfreq con el rprime correspondiente
                             aux1 = Helper.triplePartExtractor(triple);
                             if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
                                 joinVariables = new ArrayList<String>();
@@ -255,11 +255,11 @@ public class Run
                             //Check para ver si existen ancestros en comun
                             if(Helper.extractor(triple,ancestors)){
                                 elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
-                                rprime = new Join(joinVariables,(HashSet)ancestors.clone(), rprime, triple);
+                                rprime = new Join("r"+String.valueOf(i+1)+"prime",joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
                             else {
                                 elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
-                                rprime = new Join(joinVariables,(HashSet)ancestors.clone(), rprime, triple);
+                                rprime = new Join("r"+String.valueOf(i+1)+"prime",joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
                         }
                         i++;
@@ -281,9 +281,10 @@ public class Run
                     Query query = QueryFactory.create(queryString);
                     ResultSet results = HdtDataSource.ExcecuteQuery(query);
                     QuerySolution soln = results.nextSolution();
-                    RDFNode x = soln.get("count");
+                    RDFNode x = soln.get(soln.varNames().next());
                     int result = x.asLiteral().getInt();
                     finalResult = result + finalResult;
+                    System.out.println("Result: "+ result);
                     System.out.println("Final Result: "+ finalResult);
 
 
@@ -332,6 +333,7 @@ public class Run
 }
 
 class Join implements Cloneable{
+    String name;
     List<String> joinVariables;          // Variables que se ocupan para hacer el Join
     HashSet<String> ancestors;           // Variables que componen al lado izquierdo del join (otro join)
     //HashSet<String> newVariables;        // Variables que componen al Triple que con el que se esta haciendo JOIN
@@ -339,7 +341,8 @@ class Join implements Cloneable{
     TriplePath Right;                    // El triple con el que se esta haciendo JOIN
     TriplePath triple;        // Para el caso base en caso de que el primer join contenga solo triples
 
-    Join(List<String> j, HashSet<String> a,  Join L, TriplePath R){
+    Join(String n, List<String> j, HashSet<String> a,  Join L, TriplePath R){
+        name = n;
         joinVariables = j;
         ancestors = a;
         //newVariables = n;
