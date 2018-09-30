@@ -155,7 +155,7 @@ public class Run
 
                         if(i!=0) {
                             //check para ver con cual de las variables del triple se esta haciendo el join
-                            aux1 = triplePartExtractor(triple);
+                            aux1 = Helper.triplePartExtractor(triple);
                             if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
                                 joinVariables = new ArrayList<String>();
                                 joinVariables.add(aux1.get(0));
@@ -194,7 +194,7 @@ public class Run
 
                         if(i==0 && bgpIt.hasNext()){
                             //se agregan los primeros ancestros
-                            extractor(triple,ancestors);
+                            Helper.extractor(triple,ancestors);
 
                             // se obtiene el siguiente triple, se agrega a la lista de triples y se obtiene la maxfreq
                             TriplePath auxtriple = (TriplePath) bgpIt.next();
@@ -202,9 +202,9 @@ public class Run
 
 
                             // check para obtener la(s) variable(s) conecta(n) los triples en el JOIN
-                            aux1 = triplePartExtractor(triple);
+                            aux1 = Helper.triplePartExtractor(triple);
                             aux1.remove(1);
-                            List<String> aux2 = triplePartExtractor(auxtriple);
+                            List<String> aux2 = Helper.triplePartExtractor(auxtriple);
                             aux2.remove(1);
 
                             // check para ver que variables participan en el primer JOIN
@@ -231,7 +231,7 @@ public class Run
 
 
                             //Check para ver si existen ancestros en comun
-                            if(extractor(auxtriple,ancestors)){
+                            if(Helper.extractor(auxtriple,ancestors)){
                                 elasticStability = res*1 + res2*1 + 1*1;
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
@@ -257,7 +257,7 @@ public class Run
                             }
 
                             //Check para ver si existen ancestros en comun
-                            if(extractor(triple,ancestors)){
+                            if(Helper.extractor(triple,ancestors)){
                                 elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
                                 rprime = new Join(joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
@@ -302,93 +302,7 @@ public class Run
         }
 
     }
-    private static String queryCreator(List<String> triples, String queryHead){
-        String finalQuery = queryHead + "{";
-        Iterator<String> Iterator = triples.iterator();
-        while(Iterator.hasNext()){
-            finalQuery = finalQuery + Iterator.next() + ".\n ";
-        }
-        finalQuery = finalQuery + "}";
-        return finalQuery;
-    }
 
-    public static List<String> triplePartExtractor(TriplePath triplePath){
-        List<String> result = new ArrayList<String>();
-        String subject = "";
-        if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
-        {
-            subject = "<" + triplePath.asTriple().getMatchSubject().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchSubject() instanceof Node_Variable)
-        {
-            subject = "?" + triplePath.asTriple().getMatchSubject().getName();
-        }
-        String pred = "";
-        if (triplePath.asTriple().getMatchPredicate() instanceof Node_URI)
-        {
-            pred = "<" + triplePath.asTriple().getMatchPredicate().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchPredicate() instanceof Node_Variable)
-        {
-            pred = "?" + triplePath.asTriple().getMatchPredicate().getName();
-        }
-        String object = "";
-        if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
-        {
-            object = "<" + triplePath.asTriple().getMatchObject().getURI()
-                    + ">";
-        }
-        else if (triplePath.asTriple()
-                .getMatchObject() instanceof Node_Variable)
-        {
-            object = "?" + triplePath.asTriple().getMatchObject().getName();
-        }
-        result.add(subject);
-        result.add(pred);
-        result.add(object);
-
-        return result;
-    }
-
-
-    private static String tripleFixer(TriplePath triplePath){
-        List<String> aux = triplePartExtractor(triplePath);
-        String result = aux.get(0) + " " + aux.get(1) + " " + aux.get(2);
-        return result;
-    }
-
-
-    private static int getMaxFreq(HashMap<String,Integer> map) {
-        String highestMap = null;
-        int mostFreqValue = 0;
-        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-            if (entry.getValue() > mostFreqValue) {
-                highestMap = entry.getKey();
-                mostFreqValue = entry.getValue();
-            }
-        }
-        return mostFreqValue;
-    }
-
-    private static boolean extractor(TriplePath triplePath, HashSet<String> ancestors){
-        List<String> aux = triplePartExtractor(triplePath);
-        String subject = aux.get(0);
-        String object = aux.get(2);
-        if(ancestors.contains(subject)||ancestors.contains(object)){
-            ancestors.add(subject);
-            ancestors.add(object);
-            return true;
-        }
-        else{
-            ancestors.add(subject);
-            ancestors.add(object);
-            return false;
-        }
-    }
 
     private static int maxFreq(String var, Join join) throws CloneNotSupportedException{
         // Caso base

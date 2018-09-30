@@ -48,7 +48,7 @@ public class HdtDataSource
     public static int getCountResults(TriplePath triplePath,
             String variableName)
     {
-        List<String> aux = Run.triplePartExtractor(triplePath);
+        List<String> aux = Helper.triplePartExtractor(triplePath);
         String subject = aux.get(0);
         String pred = aux.get(1);
         String object = aux.get(2);
