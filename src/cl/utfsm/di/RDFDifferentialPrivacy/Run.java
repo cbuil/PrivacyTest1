@@ -250,8 +250,8 @@ public class Run
                     RDFNode x = soln.get(soln.varNames().next());
                     int result = x.asLiteral().getInt();
                     finalResult = result + finalResult;
-                    System.out.println("Result: "+ result);
-                    System.out.println("Final Result: "+ finalResult);
+                    System.out.println("Original result: "+ result);
+                    System.out.println("Private Result: "+ Math.round(finalResult));
 
 
 
