@@ -1,0 +1,5 @@
+SELECT (COUNT(?v0) as ?count) WHERE {
+  ?v0 <http://xmlns.com/foaf/homepage> <http://db.uwaterloo.ca/~galuc/wsdbm/Website38502> .
+  ?v0 <http://ogp.me/ns#title> ?v2 .
+  ?v0 <http://schema.org/contentRating> ?v3 .
+  }

@@ -1,0 +1,5 @@
+SELECT (COUNT(?v0) as ?count) WHERE {
+  <http://db.uwaterloo.ca/~galuc/wsdbm/User154183> <http://schema.org/nationality> ?v2 .
+  ?v0 <http://schema.org/eligibleRegion> ?v2 .
+  ?v0 <http://schema.org/eligibleQuantity> ?v1 .
+  }

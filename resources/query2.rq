@@ -1,4 +1,4 @@
-SELECT ?v2 WHERE {
+SELECT (COUNT(?v2) as ?count) WHERE {
   ?v2 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country20> .
   ?v0 <http://purl.org/goodrelations/offers> ?v2 .
   ?v2 <http://purl.org/goodrelations/price> ?v3 .
