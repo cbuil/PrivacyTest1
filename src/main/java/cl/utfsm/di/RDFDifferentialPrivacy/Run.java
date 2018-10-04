@@ -112,10 +112,13 @@ public class Run
                     Iterator bgpIt = pb.getList().iterator();
 
                     // delta parameter: use 1/n^2, with n = 100000
-                    double DELTA = 1 / (Math.pow(100000,2));
+                    double DELTA = 1 / (Math.pow(10000000,2));
 
                     // privacy budget
                     double EPSILON = 0.1;
+
+                    // distance
+                    int k = 1;
 
 
                     //int maxfreq = obtainMaxFreq(bgpIt, countVariable);
@@ -169,12 +172,12 @@ public class Run
                             //se calcula la maxfreq de la(s) variables que participa(n) en el JOIN
                             if(joinVariables.size()>1){
                                 // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
-                                res = Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
-                                res2 = Math.min(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)), HdtDataSource.getCountResults(auxtriple, joinVariables.get(1)));
+                                res = k + Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
+                                res2 = k+ Math.min(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)), HdtDataSource.getCountResults(auxtriple, joinVariables.get(1)));
                             }
                             else{
-                                res = HdtDataSource.getCountResults(triple, joinVariables.get(0));
-                                res2 = HdtDataSource.getCountResults(auxtriple, joinVariables.get(0));
+                                res = k + HdtDataSource.getCountResults(triple, joinVariables.get(0));
+                                res2 = k + HdtDataSource.getCountResults(auxtriple, joinVariables.get(0));
                             }
 
 
@@ -201,23 +204,23 @@ public class Run
                             joinVariables = new ArrayList<String>();
                             if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
                                 joinVariables.add(aux1.get(0));
-                                mostFreqValue = maxFreq(aux1.get(0), rprime);
+                                mostFreqValue = maxFreq(aux1.get(0), rprime, k);
                             } else if (!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
                                 joinVariables.add(aux1.get(2));
-                                mostFreqValue = maxFreq(aux1.get(2), rprime);
+                                mostFreqValue = maxFreq(aux1.get(2), rprime, k);
                             } else if (ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
                                 joinVariables.add(aux1.get(0));
                                 joinVariables.add(aux1.get(2));
-                                mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime), maxFreq(aux1.get(2), rprime));
+                                mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime, k), maxFreq(aux1.get(2), rprime, k));
                             }
 
                             //Calculo de la maxfreq de la parte derecha del join
                             if(joinVariables.size()>1){
                                 // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
-                                res = Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
+                                res = k + Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
                             }
                             else if(joinVariables.size()==1){
-                                res = HdtDataSource.getCountResults(triple, joinVariables.get(0));
+                                res = k + HdtDataSource.getCountResults(triple, joinVariables.get(0));
                             }
                             else{
                                 System.out.println("Join key missing, query not accepted");
@@ -242,7 +245,7 @@ public class Run
                     System.out.println("Elastic Stability: "+ elasticStability);
 
                     double beta = EPSILON / (2 * Math.log(2 / DELTA));
-                    double smoothSensitivity = Math.exp(-1 * beta) * elasticStability;
+                    double smoothSensitivity = Math.exp(-1 * beta * k) * elasticStability;
 
                     //Se agrega el ruido con Laplace
                     double scale = 2 * smoothSensitivity / EPSILON;
@@ -273,10 +276,10 @@ public class Run
     }
 
 
-    private static int maxFreq(String var, Join join) throws CloneNotSupportedException{
+    private static int maxFreq(String var, Join join, int k) throws CloneNotSupportedException{
         // Caso base
         if(join.triple!=null){
-            return HdtDataSource.getCountResults(join.triple, var);
+            return k + HdtDataSource.getCountResults(join.triple, var);
         }
         // Se revisa la cantidad de variables presentes en V'
         if(join.joinVariables.size()>1){
@@ -287,15 +290,15 @@ public class Run
             Join right= (Join)join.clone();
             right.joinVariables.remove(0);
 
-            return Math.min(maxFreq(left.joinVariables.get(0), left),maxFreq(right.joinVariables.get(0), right));
+            return k + Math.min(maxFreq(left.joinVariables.get(0), left, k),maxFreq(right.joinVariables.get(0), right, k));
         }
         else{
             // Casos para ver a que lado del join pertenece la variable  (a1 in r1 || a1 in r2)
             if(join.ancestors.contains(var)){
-                return maxFreq(var, join.Left) * HdtDataSource.getCountResults(join.Right , join.joinVariables.get(0));
+                return (k + maxFreq(var, join.Left, k)) * HdtDataSource.getCountResults(join.Right , join.joinVariables.get(0));
             }
             else{
-                return HdtDataSource.getCountResults(join.Right, var) * maxFreq(join.joinVariables.get(0), join.Left);
+                return HdtDataSource.getCountResults(join.Right, var) * (k + maxFreq(join.joinVariables.get(0), join.Left, k));
             }
         }
     }
