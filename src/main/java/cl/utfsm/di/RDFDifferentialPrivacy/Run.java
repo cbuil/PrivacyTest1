@@ -1,6 +1,7 @@
 package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import org.apache.commons.cli.*;
+import org.apache.commons.math3.distribution.LaplaceDistribution;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
@@ -247,20 +248,27 @@ public class Run
                     double beta = EPSILON / (2 * Math.log(2 / DELTA));
                     double smoothSensitivity = Math.exp(-1 * beta * k) * elasticStability;
 
+
                     //Se agrega el ruido con Laplace
                     double scale = 2 * smoothSensitivity / EPSILON;
                     Random random = new Random();
                     double u = 0.5 - random.nextDouble();
-                    double finalResult = -Math.signum(u) * scale * Math.log(1 - 2*Math.abs(u));
+                    LaplaceDistribution l = new LaplaceDistribution(u,scale);
+                    //double finalResult = -Math.signum(u) * scale * Math.log(1 - 2*Math.abs(u));
 
                     Query query = QueryFactory.create(queryString);
                     ResultSet results = HdtDataSource.ExcecuteQuery(query);
                     QuerySolution soln = results.nextSolution();
                     RDFNode x = soln.get(soln.varNames().next());
                     int result = x.asLiteral().getInt();
-                    finalResult = result + finalResult;
+
+                    //double finalResult1 = result + finalResult;
+                    double finalResult2 = result + l.sample();
+
                     System.out.println("Original result: "+ result);
-                    System.out.println("Private Result: "+ Math.round(finalResult));
+                    //System.out.println("Private Result: "+ Math.round(finalResult1));
+                    System.out.println("Private Result: "+ Math.round(finalResult2));
+
 
 
 
