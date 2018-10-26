@@ -16,17 +16,12 @@ import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 import org.apache.jena.sparql.syntax.ElementTriplesBlock;
 
-import static symjava.symbolic.Symbol.*;
-import symjava.bytecode.BytecodeFunc;
-import symjava.symbolic.*;
-
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
-public class Run
+public class RunNoSymbolic
 {
     public static void main(String[] args) throws IOException, CloneNotSupportedException
     {
@@ -124,15 +119,15 @@ public class Run
                     double EPSILON = 0.1;
 
                     // distance
-                    //int k = 1;
+                    int k = 1;
 
 
                     //int maxfreq = obtainMaxFreq(bgpIt, countVariable);
                     int i = 0;
-                    Expr elasticStability = Expr.valueOf(0);
-                    Expr mostFreqValue = Expr.valueOf(1);
-                    Expr res = Expr.valueOf(0);
-                    Expr res2 = Expr.valueOf(0);
+                    int elasticStability = 0;
+                    int mostFreqValue = 1;
+                    int res = 0;
+                    int res2 = 0;
                     List<String> aux1 = new ArrayList<>();
                     Join r1 = new Join();
                     Join rprime = new Join();
@@ -178,44 +173,25 @@ public class Run
                             //se calcula la maxfreq de la(s) variables que participa(n) en el JOIN
                             if(joinVariables.size()>1){
                                 // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
-
-                                res = x.plus(Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1))));
-                                res2 = x.plus(Math.min(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)), HdtDataSource.getCountResults(auxtriple, joinVariables.get(1))));
-
-                                //res = k + Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
-                                //res2 = k + Math.min(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)), HdtDataSource.getCountResults(auxtriple, joinVariables.get(1)));
+                                res = k + Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
+                                res2 = k+ Math.min(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)), HdtDataSource.getCountResults(auxtriple, joinVariables.get(1)));
                             }
                             else{
-
-                                //res = k + HdtDataSource.getCountResults(triple, joinVariables.get(0));
-                                //res2 = k + HdtDataSource.getCountResults(auxtriple, joinVariables.get(0));
-
-                                res = x.plus(HdtDataSource.getCountResults(triple, joinVariables.get(0)));
-                                res2 = x.plus(HdtDataSource.getCountResults(auxtriple, joinVariables.get(0)));
+                                res = k + HdtDataSource.getCountResults(triple, joinVariables.get(0));
+                                res2 = k + HdtDataSource.getCountResults(auxtriple, joinVariables.get(0));
                             }
 
 
                             //Check para ver si existen ancestros en comun
                             if(Helper.extractor(auxtriple,ancestors)){
-                                //elasticStability = res*1 + res2*1 + 1*1;
-                                elasticStability = res.plus(res2).plus(1);
+                                elasticStability = res*1 + res2*1 + 1*1;
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
                                 r1 = new Join(triple);
                                 rprime = new Join("r1prime",joinVariables, (HashSet)ancestors.clone(),r1,auxtriple);
                             }
                             else{
-                                //elasticStability = Math.max(res*1,res2*1);
-
-                                //Para poder obtener el maximo se evaluara la funcion en una distancia de 0
-                                Func f1 = new Func("f1", res);
-                                BytecodeFunc func1 = f1.toBytecodeFunc();
-
-                                Func f2 = new Func("f2", res2);
-                                BytecodeFunc func2 = f2.toBytecodeFunc();
-
-                                elasticStability = Expr.valueOf(Math.max(func1.apply(1),func2.apply(1)));
-
+                                elasticStability = Math.max(res*1,res2*1);
 
                                 //se define el Join para ser utilizado en la siguiente iteracion
                                 r1 = new Join(triple);
@@ -229,37 +205,23 @@ public class Run
                             joinVariables = new ArrayList<String>();
                             if (ancestors.contains(aux1.get(0)) && !ancestors.contains(aux1.get(2))) {
                                 joinVariables.add(aux1.get(0));
-                                mostFreqValue = maxFreq(aux1.get(0), rprime);
-                                //mostFreqValue = maxFreq(aux1.get(0), rprime, k);
+                                mostFreqValue = maxFreq(aux1.get(0), rprime, k);
                             } else if (!ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
                                 joinVariables.add(aux1.get(2));
-                                mostFreqValue = maxFreq(aux1.get(2), rprime);
-                                //mostFreqValue = maxFreq(aux1.get(2), rprime, k);
+                                mostFreqValue = maxFreq(aux1.get(2), rprime, k);
                             } else if (ancestors.contains(aux1.get(0)) && ancestors.contains(aux1.get(2))) {
                                 joinVariables.add(aux1.get(0));
                                 joinVariables.add(aux1.get(2));
-
-
-                                //Para poder obtener el minimo se evaluara la funcion en una distancia de 0
-                                Func f1 = new Func("f1", maxFreq(aux1.get(0), rprime));
-                                BytecodeFunc func1 = f1.toBytecodeFunc();
-
-                                Func f2 = new Func("f2", maxFreq(aux1.get(2), rprime));
-                                BytecodeFunc func2 = f2.toBytecodeFunc();
-
-                                mostFreqValue = Expr.valueOf(Math.min(Math.round(func1.apply(1)),Math.round(func2.apply(1))));
-                                //mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime, k), maxFreq(aux1.get(2), rprime, k));
+                                mostFreqValue = Math.min(maxFreq(aux1.get(0), rprime, k), maxFreq(aux1.get(2), rprime, k));
                             }
 
                             //Calculo de la maxfreq de la parte derecha del join
                             if(joinVariables.size()>1){
                                 // si son 2 variables participando en el join, se elige la que tenga la minima maxima frecuencia
-                                //res = k + Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
-                                res = x.plus(Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1))));
+                                res = k + Math.min(HdtDataSource.getCountResults(triple, joinVariables.get(0)), HdtDataSource.getCountResults(triple, joinVariables.get(1)));
                             }
                             else if(joinVariables.size()==1){
-                                //res = k + HdtDataSource.getCountResults(triple, joinVariables.get(0));
-                                res = x.plus(HdtDataSource.getCountResults(triple, joinVariables.get(0)));
+                                res = k + HdtDataSource.getCountResults(triple, joinVariables.get(0));
                             }
                             else{
                                 System.out.println("Join key missing, query not accepted");
@@ -268,20 +230,11 @@ public class Run
 
                             //Check para ver si existen ancestros en comun
                             if(Helper.extractor(triple,ancestors)){
-                                elasticStability = mostFreqValue.plus(elasticStability.multiply(res)).plus(elasticStability);
-                               //elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
+                                elasticStability = mostFreqValue * 1 + res * elasticStability + elasticStability * 1;
                                 rprime = new Join("r"+String.valueOf(i+1)+"prime",joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
                             else {
-                                Func f1 = new Func("f1", mostFreqValue);
-                                BytecodeFunc func1 = f1.toBytecodeFunc();
-
-                                Func f2 = new Func("f2", elasticStability.multiply(res));
-                                BytecodeFunc func2 = f2.toBytecodeFunc();
-
-                                elasticStability = Expr.valueOf(Math.max(Math.round(func1.apply(1)),Math.round(func2.apply(1))));
-
-                                //elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
+                                elasticStability = Math.max(mostFreqValue * 1, res * elasticStability);
                                 rprime = new Join("r"+String.valueOf(i+1)+"prime",joinVariables,(HashSet)ancestors.clone(), rprime, triple);
                             }
                         }
@@ -290,17 +243,11 @@ public class Run
                     }
 
 
-
+                    System.out.println("Elastic Stability: "+ elasticStability);
 
                     double beta = EPSILON / (2 * Math.log(2 / DELTA));
-                    //double smoothSensitivity = Math.exp(-1 * beta * k) * elasticStability;
+                    double smoothSensitivity = Math.exp(-1 * beta * k) * elasticStability;
 
-                    Func f = new Func("f", elasticStability);
-                    BytecodeFunc func = f.toBytecodeFunc();
-                    System.out.println("Elastic Stability: "+ Math.round(func.apply(2)));
-
-                    double smoothSensitivity = smoothElasticSensitivity(elasticStability,0,beta,0);
-                    System.out.println("Smooth Sensitivity: "+smoothSensitivity);
 
                     //Se agrega el ruido con Laplace
                     double scale = 2 * smoothSensitivity / EPSILON;
@@ -337,13 +284,10 @@ public class Run
     }
 
 
-    private static Expr maxFreq(String var, Join join) throws CloneNotSupportedException{
+    private static int maxFreq(String var, Join join, int k) throws CloneNotSupportedException{
         // Caso base
         if(join.triple!=null){
-            Expr expr = x;
-            expr = expr.plus(HdtDataSource.getCountResults(join.triple, var));
-            return expr;
-            //return k + HdtDataSource.getCountResults(join.triple, var);
+            return k + HdtDataSource.getCountResults(join.triple, var);
         }
         // Se revisa la cantidad de variables presentes en V'
         if(join.joinVariables.size()>1){
@@ -354,74 +298,19 @@ public class Run
             Join right= (Join)join.clone();
             right.joinVariables.remove(0);
 
-            //Para poder obtener el minimo se evaluara la funcion en una distancia de 0
-            Func f1 = new Func("f1", maxFreq(left.joinVariables.get(0), left));
-            BytecodeFunc func1 = f1.toBytecodeFunc();
-
-            Func f2 = new Func("f2", maxFreq(right.joinVariables.get(0), right));
-            BytecodeFunc func2 = f2.toBytecodeFunc();
-
-
-            return x.plus(Math.min(Math.round(func1.apply(1)),Math.round(func2.apply(1))));
-            //return k + Math.min(maxFreq(left.joinVariables.get(0), left, k),maxFreq(right.joinVariables.get(0), right, k));
+            return k + Math.min(maxFreq(left.joinVariables.get(0), left, k),maxFreq(right.joinVariables.get(0), right, k));
         }
         else{
             // Casos para ver a que lado del join pertenece la variable  (a1 in r1 || a1 in r2)
             if(join.ancestors.contains(var)){
-                return x.plus(maxFreq(var, join.Left)).multiply(HdtDataSource.getCountResults(join.Right , join.joinVariables.get(0)));
-                //return (k + maxFreq(var, join.Left, k)) * HdtDataSource.getCountResults(join.Right , join.joinVariables.get(0));
+                return (k + maxFreq(var, join.Left, k)) * HdtDataSource.getCountResults(join.Right , join.joinVariables.get(0));
             }
             else{
-                return x.plus(maxFreq(join.joinVariables.get(0), join.Left)).multiply(HdtDataSource.getCountResults(join.Right, var));
-                //return HdtDataSource.getCountResults(join.Right, var) * (k + maxFreq(join.joinVariables.get(0), join.Left, k));
+                return HdtDataSource.getCountResults(join.Right, var) * (k + maxFreq(join.joinVariables.get(0), join.Left, k));
             }
         }
     }
 
-    private static double smoothElasticSensitivity(Expr elasticSensitivity, double prevSensitivity, double beta, int k){
-        Func f1 = new Func("f1", elasticSensitivity);
-        BytecodeFunc func1 = f1.toBytecodeFunc();
-
-        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
 
 
-        if ( func1.apply(0) == 0 || (smoothSensitivity < prevSensitivity)){
-            return prevSensitivity;
-        }
-        else{
-            return smoothElasticSensitivity(elasticSensitivity, smoothSensitivity,beta,k+1);
-        }
-    }
-
-
-
-}
-
-class Join implements Cloneable{
-    String name;
-    List<String> joinVariables;          // Variables que se ocupan para hacer el Join
-    HashSet<String> ancestors;           // Variables que componen al lado izquierdo del join (otro join)
-    //HashSet<String> newVariables;        // Variables que componen al Triple que con el que se esta haciendo JOIN
-    Join Left;                           // El join izquierdo con el que se esta haciendo JOIN
-    TriplePath Right;                    // El triple con el que se esta haciendo JOIN
-    TriplePath triple;        // Para el caso base en caso de que el primer join contenga solo triples
-
-    Join(String n, List<String> j, HashSet<String> a,  Join L, TriplePath R){
-        name = n;
-        joinVariables = j;
-        ancestors = a;
-        //newVariables = n;
-        Left = L;
-        Right = R;
-    }
-
-    Join(TriplePath l){
-        triple = l;
-    }
-    Join(){}
-
-    @Override
-    public Object clone() throws CloneNotSupportedException{
-        return super.clone();
-    }
 }
