@@ -82,7 +82,7 @@ public class Run
                 System.out.println("Missing COUNT variable");
             }
 
-            HdtDataSource hdtDataSource = new HdtDataSource("resources/watdiv.10M.hdt");
+            HdtDataSource hdtDataSource = new HdtDataSource("resources/watdiv.100M.nt.hdt");
             Query q = QueryFactory.create(queryString);
 
             //se obtiene el encabezado de la query
@@ -268,10 +268,6 @@ public class Run
                     System.out.println("Original result: "+ result);
                     //System.out.println("Private Result: "+ Math.round(finalResult1));
                     System.out.println("Private Result: "+ Math.round(finalResult2));
-
-
-
-
                 }
             }
         }
