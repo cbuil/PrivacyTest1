@@ -1,13 +1,17 @@
 package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.Node_URI;
-import org.apache.jena.graph.Node_Variable;
-import org.apache.jena.query.*;
+import org.apache.jena.graph.Triple;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.ResultSetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
@@ -53,14 +57,13 @@ public class HdtDataSource
         String pred = aux.get(1);
         String object = aux.get(2);
 
-
         variableName = variableName.replace("“", "").replace("”", "");
-        String countQueryString = "select (count(" + variableName
+        String maxFreqQueryString = "select (count(" + variableName
                 + ") as ?count) where { " + subject + " " + pred + " " + object
                 + " " + "} GROUP BY " + variableName + " " + "ORDER BY "
                 + variableName + " DESC (?count) LIMIT 1 ";
 
-        Query query = QueryFactory.create(countQueryString);
+        Query query = QueryFactory.create(maxFreqQueryString);
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples))
         {
@@ -70,7 +73,7 @@ public class HdtDataSource
                 QuerySolution soln = results.nextSolution();
                 RDFNode x = soln.get("count");
                 int res = x.asLiteral().getInt();
-                System.out.println("count: " + res);
+                System.out.println("max freq value: " + res);
                 return res;
             }
             else
@@ -78,11 +81,30 @@ public class HdtDataSource
         }
     }
 
-    public static ResultSet ExcecuteQuery(Query query){
-        try(QueryExecution qexec = QueryExecutionFactory.create(query,triples)){
+    public static ResultSet ExcecuteQuery(Query query)
+    {
+        try (QueryExecution qexec = QueryExecutionFactory.create(query,
+                triples))
+        {
             ResultSet results = qexec.execSelect();
-            results = ResultSetFactory.copyResults(results) ;
+            results = ResultSetFactory.copyResults(results);
             return results;
+        }
+    }
+
+    public static int getTripSize(Query query)
+    {
+        try (QueryExecution qexec = QueryExecutionFactory.create(query,
+                triples))
+        {
+            Iterator<Triple> results = qexec.execConstructTriples();
+            int resultSize = 0;
+            while (results.hasNext())
+            {
+                results.next();
+                resultSize++;
+            }
+            return resultSize;
         }
     }
 
