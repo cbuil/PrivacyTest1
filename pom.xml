@@ -28,6 +28,25 @@
 					</descriptorRefs>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.6.0</version>
+				<executions>
+					<execution>
+						<id>run-dp</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run</mainClass>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run-query-gen</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.GenerateCountQueries</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 
 		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
@@ -97,6 +116,13 @@
 			<version>1.1.2</version>
 			<scope>system</scope>
 			<systemPath>${project.basedir}/lib/SymJava-1.1.2.jar</systemPath>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.6.2</version>
+			<scope>test</scope>
 		</dependency>
 
 	</dependencies>

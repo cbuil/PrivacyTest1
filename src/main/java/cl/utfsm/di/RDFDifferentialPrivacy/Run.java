@@ -33,15 +33,10 @@ public class Run
         // create Options object
         Options options = new Options();
 
-        // add q query option
         options.addOption("q", "query", true, "input SPARQL query");
-        // add q query file option
         options.addOption("f", "qFile", true, "input SPARQL query File");
-        // add e endpoint option
-        options.addOption("e", "endpoint", true, "SPARQL endpoint");
-        // add v COUNT variable option
-        options.addOption("v", "var", true, "COUNT variable");
         options.addOption("d", "data", true, "HDT data file");
+        options.addOption("e", "dir", true, "query directory");
 
         CommandLineParser parser = new DefaultParser();
         try
@@ -76,7 +71,7 @@ public class Run
             }
             else
             {
-                System.out.println("Missing COUNT variable");
+                System.out.println("Missing data file");
             }
 
             int queryTriples = 0;
