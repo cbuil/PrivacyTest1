@@ -23,6 +23,9 @@ import symjava.symbolic.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 public class RunSymbolic
@@ -33,14 +36,10 @@ public class RunSymbolic
         // create Options object
         Options options = new Options();
 
-        // add q query option
         options.addOption("q", "query", true, "input SPARQL query");
-        // add q query file option
         options.addOption("f", "qFile", true, "input SPARQL query File");
-        // add e endpoint option
-        options.addOption("e", "endpoint", true, "SPARQL endpoint");
-        // add v COUNT variable option
-        options.addOption("v", "var", true, "COUNT variable");
+        options.addOption("d", "data", true, "HDT data file");
+        options.addOption("e", "dir", true, "query directory");
 
         CommandLineParser parser = new DefaultParser();
         try
@@ -49,6 +48,7 @@ public class RunSymbolic
             String queryString = "";
             String queryFile = "";
             String countVariable = "";
+            String dataFile = "";
 
             CommandLine cmd = parser.parse(options, args);
             if (cmd.hasOption("q"))
@@ -86,10 +86,27 @@ public class RunSymbolic
             {
                 System.out.println("Missing COUNT variable");
             }
+            if (cmd.hasOption("d"))
+            {
+                dataFile = cmd.getOptionValue("d");
+            }
+            else
+            {
+                System.out.println("Missing data file");
+            }
 
-            HdtDataSource hdtDataSource = new HdtDataSource(
-                    "resources/watdiv.10M.hdt");
+            if (!Files.exists(Paths.get("results_symbolic.csv")))
+            {
+                Files.createFile(Paths.get("results_symbolic.csv"));
+            }
+
+            HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
             Query q = QueryFactory.create(queryString);
+
+            String construct = queryString.replaceFirst("SELECT.*WHERE",
+                    "CONSTRUCT WHERE");
+            Query constructQuery = QueryFactory.create(construct);
+            double tripSize = HdtDataSource.getTripSize(constructQuery);
 
             // se obtiene el encabezado de la query
             // String queryHead = "SELECT " + countVariable +"\nWHERE\n";
@@ -99,6 +116,7 @@ public class RunSymbolic
 
             ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
             List<Element> elementList = queryPattern.getElements();
+            int queryTriples = 0;
             for (Element element : elementList)
             {
                 if (element instanceof ElementTriplesBlock)
@@ -119,10 +137,10 @@ public class RunSymbolic
                     Iterator bgpIt = pb.getList().iterator();
 
                     // delta parameter: use 1/n^2, with n = 100000
-                    double DELTA = 1 / (Math.pow(10000000, 2));
+                    double DELTA = 1 / (Math.pow(tripSize, 2));
 
                     // privacy budget
-                    double EPSILON = 0.1;
+                    double EPSILON = 0.2;
 
                     // distance
                     // int k = 1;
@@ -143,6 +161,7 @@ public class RunSymbolic
 
                     while (bgpIt.hasNext())
                     {
+                        queryTriples++;
                         TriplePath triple = (TriplePath) bgpIt.next();
                         if (i == 0 && bgpIt.hasNext())
                         {
@@ -231,7 +250,16 @@ public class RunSymbolic
                             if (Helper.extractor(auxtriple, ancestors))
                             {
                                 // elasticStability = res*1 + res2*1 + 1*1;
-                                elasticStability = res.plus(res2).plus(1);
+//                                elasticStability = res.plus(res2).plus(1);
+                                
+                                Func f1 = new Func("f1", res);
+                                BytecodeFunc func1 = f1.toBytecodeFunc();
+
+                                Func f2 = new Func("f2", res2);
+                                BytecodeFunc func2 = f2.toBytecodeFunc();
+
+                                elasticStability = Expr.valueOf(Math
+                                        .max(func1.apply(1), func2.apply(1)));
 
                                 // se define el Join para ser utilizado en la
                                 // siguiente iteracion
@@ -392,8 +420,9 @@ public class RunSymbolic
                     System.out.println(
                             "Elastic Stability: " + Math.round(func.apply(2)));
 
-                    double smoothSensitivity = smoothElasticSensitivity(
+                    SmoothResult smoothResult = smoothElasticSensitivity(
                             elasticStability, 0, beta, 0);
+                    double smoothSensitivity = smoothResult.getSensitivity();
                     System.out.println(
                             "Smooth Sensitivity: " + smoothSensitivity);
 
@@ -413,6 +442,31 @@ public class RunSymbolic
 
                     // double finalResult1 = result + finalResult;
                     double finalResult2 = result + l.sample();
+
+                    System.out.println("Elastic Stabiliy: " + elasticStability);
+                    StringBuffer csvLine = new StringBuffer();
+                    csvLine.append(queryFile);
+                    csvLine.append(",");
+                    csvLine.append(result);
+                    csvLine.append(",");
+                    csvLine.append(finalResult2);
+                    csvLine.append(",");
+                    csvLine.append(queryTriples);
+                    csvLine.append(",");
+                    csvLine.append(EPSILON);
+                    csvLine.append(",");
+                    csvLine.append(smoothSensitivity);
+                    csvLine.append(",");
+                    csvLine.append(elasticStability);
+                    csvLine.append(",");
+                    csvLine.append(smoothResult.getK());
+                    csvLine.append(",");
+                    csvLine.append(tripSize);
+                    csvLine.append("\n");
+
+                    Files.write(Paths.get("results_symbolic.csv"),
+                            csvLine.toString().getBytes(),
+                            StandardOpenOption.APPEND);
 
                     System.out.println("Original result: " + result);
                     // System.out.println("Private Result: "+
@@ -491,17 +545,22 @@ public class RunSymbolic
         }
     }
 
-    private static double smoothElasticSensitivity(Expr elasticSensitivity,
-            double prevSensitivity, double beta, int k)
+    private static SmoothResult smoothElasticSensitivity(
+            Expr elasticSensitivity, double prevSensitivity, double beta, int k)
     {
         Func f1 = new Func("f1", elasticSensitivity);
         BytecodeFunc func1 = f1.toBytecodeFunc();
 
-        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
+        double elasticSensitivityAtK = func1.apply(k);
 
-        if (func1.apply(0) == 0 || (smoothSensitivity < prevSensitivity))
+        System.out.println("k: " + k);
+        double smoothSensitivity = Math.exp(-k * beta) * elasticSensitivityAtK;
+        System.out.println("prev sensitivity: " + prevSensitivity
+                + " smootSensitivity: " + smoothSensitivity);
+
+        if (elasticSensitivityAtK == 0 || (smoothSensitivity < prevSensitivity))
         {
-            return prevSensitivity;
+            return new SmoothResult(prevSensitivity, k);
         }
         else
         {
@@ -512,41 +571,24 @@ public class RunSymbolic
 
 }
 
-//class Join implements Cloneable
-//{
-//    String name;
-//    List<String> joinVariables; // Variables que se ocupan para hacer el Join
-//    HashSet<String> ancestors; // Variables que componen al lado izquierdo del
-//                               // join (otro join)
-//    // HashSet<String> newVariables; // Variables que componen al Triple que con
-//    // el que se esta haciendo JOIN
-//    Join Left; // El join izquierdo con el que se esta haciendo JOIN
-//    TriplePath Right; // El triple con el que se esta haciendo JOIN
-//    TriplePath triple; // Para el caso base en caso de que el primer join
-//                       // contenga solo triples
-//
-//    Join(String n, List<String> j, HashSet<String> a, Join L, TriplePath R)
-//    {
-//        name = n;
-//        joinVariables = j;
-//        ancestors = a;
-//        // newVariables = n;
-//        Left = L;
-//        Right = R;
-//    }
-//
-//    Join(TriplePath l)
-//    {
-//        triple = l;
-//    }
-//
-//    Join()
-//    {
-//    }
-//
-//    @Override
-//    public Object clone() throws CloneNotSupportedException
-//    {
-//        return super.clone();
-//    }
-//}
+final class SmoothResult
+{
+    private final double sensitivity;
+    private final int k;
+
+    public SmoothResult(double sensitivity, int k)
+    {
+        this.sensitivity = sensitivity;
+        this.k = k;
+    }
+
+    public double getSensitivity()
+    {
+        return sensitivity;
+    }
+
+    public int getK()
+    {
+        return k;
+    }
+}

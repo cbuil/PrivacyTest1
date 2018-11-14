@@ -100,7 +100,8 @@ public class GraphElasticSensitivity
                 // Check para ver si existen ancestros en comun
                 if (Helper.extractor(auxtriple, ancestors))
                 {
-                    elasticStability = res * 1 + res2 * 1 + 1 * 1;
+//                    elasticStability = res * 1 + res2 * 1 + 1 * 1;
+                    elasticStability = Math.max(res * 1, res2 * 1);
 
                     // se define el Join para ser utilizado en la
                     // siguiente iteracion
@@ -175,8 +176,9 @@ public class GraphElasticSensitivity
                 // Check para ver si existen ancestros en comun
                 if (Helper.extractor(triple, ancestors))
                 {
-                    elasticStability = mostFreqValue * 1
-                            + res * elasticStability + elasticStability * 1;
+//                    elasticStability = mostFreqValue * 1
+//                            + res * elasticStability + elasticStability * 1;
+                    elasticStability = Math.max(res * 1, res2 * 1);
                     rprime = new Join("r" + String.valueOf(i + 1) + "prime",
                             joinVariables, (HashSet) ancestors.clone(), rprime,
                             triple);

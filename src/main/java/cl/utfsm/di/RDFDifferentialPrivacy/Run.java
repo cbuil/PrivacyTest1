@@ -80,7 +80,12 @@ public class Run
             String construct = queryString.replaceFirst("SELECT.*WHERE",
                     "CONSTRUCT WHERE");
             Query constructQuery = QueryFactory.create(construct);
-            double trip_size = HdtDataSource.getTripSize(constructQuery);
+            double tripSize = HdtDataSource.getTripSize(constructQuery);
+
+            if (!Files.exists(Paths.get("results.csv")))
+            {
+                Files.createFile(Paths.get("results.csv"));
+            }
 
             ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
             List<Element> elementList = queryPattern.getElements();
@@ -91,7 +96,7 @@ public class Run
                     // distance
                     int k = 1;
                     queryTriples++;
-                    double DELTA = 1 / (Math.pow(trip_size, 2));
+                    double DELTA = 1 / (Math.pow(tripSize, 2));
 
                     // privacy budget
                     double EPSILON = 0.2;
@@ -137,7 +142,7 @@ public class Run
                     csvLine.append(",");
                     csvLine.append(k);
                     csvLine.append(",");
-                    csvLine.append(trip_size);
+                    csvLine.append(tripSize);
                     csvLine.append("\n");
 
                     Files.write(Paths.get("results.csv"),
