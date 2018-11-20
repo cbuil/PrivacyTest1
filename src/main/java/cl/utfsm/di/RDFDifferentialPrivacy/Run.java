@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -95,11 +96,12 @@ public class Run
                 {
                     // distance
                     int k = 1;
-                    queryTriples++;
+                    queryTriples += ((ElementPathBlock) element).getPattern()
+                            .size();
                     double DELTA = 1 / (Math.pow(tripSize, 2));
 
                     // privacy budget
-                    double EPSILON = 0.2;
+                    double EPSILON = 0.1;
 
                     double elasticStability = GraphElasticSensitivity
                             .calculateElasticSensitivityAtK(k,
@@ -114,7 +116,7 @@ public class Run
 
                     // Se agrega el ruido con Laplace
                     double scale = 2 * smoothSensitivity / EPSILON;
-                    Random random = new Random();
+                    SecureRandom random = new SecureRandom();
                     double u = 0.5 - random.nextDouble();
                     LaplaceDistribution l = new LaplaceDistribution(u, scale);
 
