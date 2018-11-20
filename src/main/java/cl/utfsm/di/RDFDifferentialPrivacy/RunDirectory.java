@@ -213,7 +213,7 @@ public class RunDirectory
 
                 double finalResult2 = result + l.sample();
                 StringBuffer csvLine = new StringBuffer();
-                csvLine.append(queryString);
+                csvLine.append(queryString.replaceAll("\n", " "));
                 csvLine.append(",");
                 csvLine.append(result);
                 csvLine.append(",");

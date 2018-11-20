@@ -245,7 +245,8 @@ public class GraphElasticSensitivity
     }
 
     public static Expr calculateElasticSensitivityAtK(ElementPathBlock element,
-            double ePSILON, ElementPathBlock bgpBlock) throws CloneNotSupportedException
+            double ePSILON, ElementPathBlock bgpBlock)
+            throws CloneNotSupportedException
     {
         // distance
         // int k = 1;
@@ -260,7 +261,7 @@ public class GraphElasticSensitivity
         Join r1 = new Join();
         Join rprime = new Join();
         List<String> joinVariables = new ArrayList<String>();
-        
+
         PathBlock pb = bgpBlock.getPattern();
         Iterator bgpIt = pb.getList().iterator();
 
@@ -278,7 +279,7 @@ public class GraphElasticSensitivity
                 // se obtiene el siguiente triple, se agrega a la
                 // lista de triples y se obtiene la maxfreq
                 TriplePath auxtriple = (TriplePath) bgpIt.next();
-//                System.out.println(auxtriple.toString());
+                // System.out.println(auxtriple.toString());
 
                 // check para obtener la(s) variable(s) conecta(n)
                 // los triples en el JOIN
@@ -500,13 +501,13 @@ public class GraphElasticSensitivity
                 }
             }
             i++;
-//            System.out.println(triple.toString());
+            // System.out.println(triple.toString());
         }
         return elasticStability;
     }
 
-    public static SmoothResult smoothElasticSensitivity(
-            Expr elasticSensitivity, double prevSensitivity, double beta, int k,
+    public static SmoothResult smoothElasticSensitivity(Expr elasticSensitivity,
+            double prevSensitivity, double beta, int k,
             ElementPathBlock bgpBlock)
     {
         Func f1 = new Func("f1", elasticSensitivity);
@@ -514,11 +515,16 @@ public class GraphElasticSensitivity
 
         double elasticSensitivityAtK = func1.apply(k);
 
-//        System.out.println("k: " + k);
+        // System.out.println("k: " + k);
         double smoothSensitivity = Math.exp(-k * beta) * elasticSensitivityAtK;
         System.out.println("prev sensitivity: " + prevSensitivity
-                + " smootSensitivity: " + smoothSensitivity);
+                + " smoothSensitivity: " + smoothSensitivity);
 
+        // it is unnecessary to caculate more than 1000 since utility at that distance is 0 
+        if (k == 500)
+        {
+            return new SmoothResult(prevSensitivity, k);
+        }
         if (elasticSensitivityAtK == 0 || (smoothSensitivity < prevSensitivity))
         {
             return new SmoothResult(prevSensitivity, k);
