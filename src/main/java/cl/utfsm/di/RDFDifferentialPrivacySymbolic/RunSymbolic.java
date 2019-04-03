@@ -157,6 +157,7 @@ public class RunSymbolic
         }
     }
 
+    // TODO: change this to a while and add as limit the size of the query  
     private static double smoothElasticSensitivity(Expr elasticSensitivity,
             double prevSensitivity, double beta, int k)
     {
