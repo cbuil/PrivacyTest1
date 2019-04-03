@@ -40,6 +40,12 @@
 						</configuration>
 					</execution>
 					<execution>
+						<id>run-dp-dir</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.RunDirectory</mainClass>
+						</configuration>
+					</execution>
+					<execution>
 						<id>run-query-gen</id>
 						<configuration>
 							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.GenerateCountQueries</mainClass>

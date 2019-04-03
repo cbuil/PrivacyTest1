@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacy;
+package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
 import java.util.HashSet;
 import java.util.List;

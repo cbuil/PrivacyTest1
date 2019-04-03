@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacy;
+package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -73,42 +73,12 @@ public class HdtDataSource
                 QuerySolution soln = results.nextSolution();
                 RDFNode x = soln.get("count");
                 int res = x.asLiteral().getInt();
-//                System.out.println("max freq value: " + res);
+                System.out.println("max freq value: " + res);
                 return res;
             }
             else
                 return 0;
         }
-    }
-
-    public static int getCountQuery(TriplePath triplePath)
-    {
-        List<String> aux = Helper.triplePartExtractor(triplePath);
-        String subject = aux.get(0);
-        String pred = aux.get(1);
-        String object = aux.get(2);
-
-        String maxFreqQueryString = "CONSTRUCT where { "
-                + subject + " " + pred + " " + object + " }";
-
-        Query query = QueryFactory.create(maxFreqQueryString);
-        
-        return getTripSize(query);
-//        try (QueryExecution qexec = QueryExecutionFactory.create(query,
-//                triples))
-//        {
-//            ResultSet results = qexec.execSelect();
-//            if (results.hasNext())
-//            {
-//                QuerySolution soln = results.nextSolution();
-//                RDFNode x = soln.get("?count");
-//                int res = x.asLiteral().getInt();
-//                System.out.println("max freq value: " + res);
-//                return res;
-//            }
-//            else
-//                return 0;
-//        }
     }
 
     public static ResultSet ExcecuteQuery(Query query)
@@ -136,6 +106,15 @@ public class HdtDataSource
             }
             return resultSize;
         }
+    }
+    
+    public static int executeCountQuery(String queryString)
+    {
+        Query query = QueryFactory.create(queryString);
+        ResultSet results = HdtDataSource.ExcecuteQuery(query);
+        QuerySolution soln = results.nextSolution();
+        RDFNode x = soln.get(soln.varNames().next());
+        return x.asLiteral().getInt();
     }
 
 }
