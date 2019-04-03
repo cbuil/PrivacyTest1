@@ -25,6 +25,10 @@ import org.apache.jena.sparql.syntax.Element;
 import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 
+import symjava.bytecode.BytecodeFunc;
+import symjava.symbolic.Expr;
+import symjava.symbolic.Func;
+
 public class Run
 {
     public static void main(String[] args)
@@ -79,8 +83,10 @@ public class Run
             Query q = QueryFactory.create(queryString);
             String construct = queryString.replaceFirst("SELECT.*WHERE",
                     "CONSTRUCT WHERE");
+
             Query constructQuery = QueryFactory.create(construct);
-            double trip_size = HdtDataSource.getTripSize(constructQuery);
+            double trip_size = 1;
+            trip_size = HdtDataSource.getTripSize(constructQuery);
 
             ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
             List<Element> elementList = queryPattern.getElements();
@@ -94,7 +100,22 @@ public class Run
                     double DELTA = 1 / (Math.pow(trip_size, 2));
 
                     // privacy budget
-                    double EPSILON = 0.2;
+                    double EPSILON = 0.1;
+
+                    if (Helper.isStarQuery(q))
+                    {
+                        Expr elasticStability = Expr.valueOf(0);
+                        Func f = new Func("f", elasticStability);
+                        BytecodeFunc func = f.toBytecodeFunc();
+                        double beta = EPSILON / (2 * Math.log(2 / DELTA));
+                        // Expr expr = x;
+                        double smoothSensitivity = Math.exp(-k * beta)
+                                * func.apply(k);
+                        GraphElasticSensitivity.setOfMappingsSensitivity(
+                                elasticStability, smoothSensitivity, EPSILON,
+                                k);
+                        System.out.println("star query");
+                    }
 
                     double elasticStability = GraphElasticSensitivity
                             .calculateElasticSensitivityAtK(k,
@@ -120,6 +141,8 @@ public class Run
                     int result = x.asLiteral().getInt();
 
                     double finalResult2 = result + l.sample();
+                    // ksjhfakljshfdkjfhadjshf;lasdkngkjasdfbkjadsfbk;adjsfb;
+                    // jdsbkjslfdnbkdlsfnb;sdjnfbajs,dbfkjabdkjbasdfk
                     StringBuffer csvLine = new StringBuffer();
                     csvLine.append(queryFile);
                     csvLine.append(",");

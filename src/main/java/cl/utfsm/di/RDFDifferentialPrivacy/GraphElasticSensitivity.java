@@ -9,6 +9,10 @@ import org.apache.jena.sparql.core.PathBlock;
 import org.apache.jena.sparql.core.TriplePath;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 
+import symjava.bytecode.BytecodeFunc;
+import symjava.symbolic.Expr;
+import symjava.symbolic.Func;
+
 public class GraphElasticSensitivity
 {
 
@@ -100,7 +104,9 @@ public class GraphElasticSensitivity
                 // Check para ver si existen ancestros en comun
                 if (Helper.extractor(auxtriple, ancestors))
                 {
-                    elasticStability = res * 1 + res2 * 1 + 1 * 1;
+                    // elasticStability = res * 1 + res2 * 1 + 1 * 1;
+                    // Using always the no ancestors formula
+                    elasticStability = Math.max(res * 1, res2 * 1);
 
                     // se define el Join para ser utilizado en la
                     // siguiente iteracion
@@ -175,8 +181,10 @@ public class GraphElasticSensitivity
                 // Check para ver si existen ancestros en comun
                 if (Helper.extractor(triple, ancestors))
                 {
-                    elasticStability = mostFreqValue * 1
-                            + res * elasticStability + elasticStability * 1;
+                    elasticStability = Math.max(mostFreqValue * 1,
+                            res * elasticStability);
+                    // elasticStability = mostFreqValue * 1
+                    // + res * elasticStability + elasticStability * 1;
                     rprime = new Join("r" + String.valueOf(i + 1) + "prime",
                             joinVariables, (HashSet) ancestors.clone(), rprime,
                             triple);
@@ -235,5 +243,23 @@ public class GraphElasticSensitivity
         }
     }
 
-}
+    public static double setOfMappingsSensitivity(Expr elasticSensitivity,
+            double prevSensitivity, double beta, int k)
+    {
+        Func f1 = new Func("f1", elasticSensitivity);
+        BytecodeFunc func1 = f1.toBytecodeFunc();
 
+        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
+
+        if (func1.apply(0) == 0 || (smoothSensitivity < prevSensitivity))
+        {
+            return prevSensitivity;
+        }
+        else
+        {
+            return setOfMappingsSensitivity(elasticSensitivity,
+                    smoothSensitivity, beta, k + 1);
+        }
+    }
+
+}
