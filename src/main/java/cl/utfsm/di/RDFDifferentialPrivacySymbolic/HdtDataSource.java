@@ -49,6 +49,35 @@ public class HdtDataSource
         triples = ModelFactory.createModelForGraph(graph);
     }
 
+    public static int getCountResults(String starQuery, String variableName)
+    {
+
+        variableName = variableName.replace("“", "").replace("”", "");
+        String maxFreqQueryString = "select (count(" + variableName
+                + ") as ?count) where { " + starQuery + " " + "} GROUP BY "
+                + variableName + " " + "ORDER BY " + variableName
+                + " DESC (?count) LIMIT 1 ";
+
+        Query query = QueryFactory.create(maxFreqQueryString);
+        try (QueryExecution qexec = QueryExecutionFactory.create(query,
+                triples))
+        {
+            ResultSet results = qexec.execSelect();
+            if (results.hasNext())
+            {
+                QuerySolution soln = results.nextSolution();
+                RDFNode x = soln.get("count");
+                int res = x.asLiteral().getInt();
+                System.out.println("max freq value: " + res);
+                return res;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    }
+
     public static int getCountResults(TriplePath triplePath,
             String variableName)
     {

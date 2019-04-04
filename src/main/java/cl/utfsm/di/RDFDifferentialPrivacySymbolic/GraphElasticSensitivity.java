@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.core.PathBlock;
 import org.apache.jena.sparql.core.TriplePath;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
@@ -248,14 +250,14 @@ public class GraphElasticSensitivity
                 // Check para ver si existen ancestros en comun
                 if (Helper.extractor(triple, ancestors))
                 {
-//                    elasticStability = mostFreqValue
-//                            .plus(elasticStability.multiply(res))
-//                            .plus(elasticStability);
-//                    // elasticStability = mostFreqValue * 1 + res *
-//                    // elasticStability + elasticStability * 1;
-//                    rprime = new Join("r" + String.valueOf(i + 1) + "prime",
-//                            joinVariables, (HashSet) ancestors.clone(), rprime,
-//                            triple);
+                    // elasticStability = mostFreqValue
+                    // .plus(elasticStability.multiply(res))
+                    // .plus(elasticStability);
+                    // // elasticStability = mostFreqValue * 1 + res *
+                    // // elasticStability + elasticStability * 1;
+                    // rprime = new Join("r" + String.valueOf(i + 1) + "prime",
+                    // joinVariables, (HashSet) ancestors.clone(), rprime,
+                    // triple);
                     Func f1 = new Func("f1", mostFreqValue);
                     BytecodeFunc func1 = f1.toBytecodeFunc();
 
@@ -292,7 +294,7 @@ public class GraphElasticSensitivity
                 }
             }
             i++;
-//            System.out.println(triple.toString());
+            // System.out.println(triple.toString());
         }
         return elasticStability;
     }
@@ -376,4 +378,132 @@ public class GraphElasticSensitivity
         }
     }
 
+    public static Expr calculateElasticSensitivityAtK(int k,
+            Map<String, List<TriplePath>> starQueriesMap, double EPSILON,
+            double beta, double DELTA) throws CloneNotSupportedException
+    {
+        StarQuery starPrime = new StarQuery();
+        for (String joinVariable : starQueriesMap.keySet())
+        {
+            StarQuery starQueryRight = new StarQuery(
+                    starQueriesMap.get(joinVariable));
+            starQueriesMap.remove(joinVariable);
+            
+            Expr elasticStabilityLeft = Expr.valueOf(0);
+            double smoothSensitivityLeft = 0.0;
+            elasticStabilityLeft = x;
+            double sensitivity = k;
+            // left side smooth sensitivity
+            smoothSensitivityLeft = smoothElasticSensitivity(
+                    elasticStabilityLeft, sensitivity, beta, k);
+            System.out.println("star query (smooth) sensitivity: "
+                    + smoothSensitivityLeft);
+
+            Expr res = Expr.valueOf(0);
+            Expr res2 = Expr.valueOf(0);
+
+            // base case: i == 0 && bgpIt.hasNext()
+            if (!starQueriesMap.keySet().isEmpty())
+            {
+                Expr elasticStabilityRight = Expr.valueOf(0);
+                double smoothSensitivityRight = 0.0;
+                elasticStabilityRight = x;
+                sensitivity = k;
+                smoothSensitivityRight = smoothElasticSensitivity(
+                        elasticStabilityRight, sensitivity, beta, k);
+                System.out.println("star query (smooth) sensitivity: "
+                        + smoothSensitivityRight);
+
+                joinVariable = starQueriesMap.keySet().iterator().next();
+                StarQuery starQueryLeft = new StarQuery(
+                        starQueriesMap.get(joinVariable));
+                starQueriesMap.remove(joinVariable);
+
+                List<String> joinVariables = starQueryLeft.getVariables();
+                joinVariables.retainAll(starQueryRight.getVariables());
+
+                if (joinVariables.size() > 1)
+                {
+                    // si son 2 variables participando en el join, se elige la
+                    // que tenga la minima maxima frecuencia
+                    
+                    int mostFreqValue = maxFreq(aux1.get(0), rprime);
+
+                    res = x.plus(Math.min(HdtDataSource.getCountResults(
+                            starQueryRight.toString(), joinVariables.get(0)),
+                            HdtDataSource.getCountResults(
+                                    starQueryLeft.toString(),
+                                    joinVariables.get(1))));
+                    res2 = x.plus(Math.min(HdtDataSource.getCountResults(
+                            starQueryRight.toString(), joinVariables.get(0)),
+                            HdtDataSource.getCountResults(
+                                    starQueryLeft.toString(),
+                                    joinVariables.get(1))));
+                }
+                else
+                {
+                    res = x.plus(HdtDataSource.getCountResults(
+                            starQueryRight.toString(), joinVariables.get(0)));
+                    res2 = x.plus(HdtDataSource.getCountResults(
+                            starQueryLeft.toString(), joinVariables.get(0)));
+                    
+                    Func f1 = new Func("f1", mostFreqValue);
+                    BytecodeFunc func1 = f1.toBytecodeFunc();
+
+                    Func f2 = new Func("f2", elasticStability.multiply(res));
+                    BytecodeFunc func2 = f2.toBytecodeFunc();
+                    
+                    elasticStability = Expr
+                            .valueOf(Math.max(Math.round(func1.apply(1)),
+                                    Math.round(func2.apply(1))));
+
+                    // elasticStability = Math.max(mostFreqValue * 1, res *
+                    // elasticStability);
+                    rprime = new Join("r" + String.valueOf(i + 1) + "prime",
+                            joinVariables, (HashSet) ancestors.clone(), rprime,
+                            triple);
+                }
+
+                // // Check para ver si existen ancestros en comun
+                // elasticStability = Math.max(res*1,res2*1);
+
+                // Para poder obtener el maximo se evaluara la funcion en
+                // una distancia de 0
+                Func f1 = new Func("f1", res);
+                BytecodeFunc func1 = f1.toBytecodeFunc();
+
+                Func f2 = new Func("f2", res2);
+                BytecodeFunc func2 = f2.toBytecodeFunc();
+
+                elasticStabilityRight = Expr
+                        .valueOf(Math.max(func1.apply(1), func2.apply(1)));
+
+                // se define el Join para ser utilizado en la siguiente
+                // iteracion
+                starPrime = new StarQuery(starQueryRight.getTriples());
+                starPrime.addStarQuery(starQueryLeft.getTriples());
+            }
+        }
+        return null;
+    }
+
+    // TODO: change this to a while and add as limit the size of the query
+    private static double smoothElasticSensitivity(Expr elasticSensitivity,
+            double prevSensitivity, double beta, int k)
+    {
+        Func f1 = new Func("f1", elasticSensitivity);
+        BytecodeFunc func1 = f1.toBytecodeFunc();
+
+        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
+
+        if (smoothSensitivity == 0 || (smoothSensitivity > prevSensitivity))
+        {
+            return prevSensitivity;
+        }
+        else
+        {
+            return smoothElasticSensitivity(elasticSensitivity,
+                    smoothSensitivity, beta, k + 1);
+        }
+    }
 }

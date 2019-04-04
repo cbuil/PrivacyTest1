@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -16,6 +17,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.sparql.core.TriplePath;
 import org.apache.jena.sparql.syntax.Element;
 import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
@@ -29,7 +31,6 @@ public class RunSymbolic
     public static void main(String[] args)
             throws IOException, CloneNotSupportedException
     {
-
 
         // privacy budget
         double EPSILON = 0.1;
@@ -94,12 +95,12 @@ public class RunSymbolic
 
         HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
         Query q = QueryFactory.create(queryString);
-        
+
         String construct = queryString.replaceFirst("SELECT.*WHERE",
                 "CONSTRUCT WHERE");
         Query constructQuery = QueryFactory.create(construct);
         double tripSize = HdtDataSource.getTripSize(constructQuery);
-        
+
         // delta parameter: use 1/n^2, with n = size of the data in the query
         double DELTA = 1 / (Math.pow(tripSize, 2));
 
@@ -115,6 +116,9 @@ public class RunSymbolic
 
             int k = 1;
 
+            Map<String, List<TriplePath>> starQueriesMap = Helper
+                    .getStarPatterns(q);
+
             if (Helper.isStarQuery(q))
             {
                 elasticStability = x;
@@ -126,6 +130,8 @@ public class RunSymbolic
             }
             else
             {
+                elasticStability = GraphElasticSensitivity
+                        .calculateElasticSensitivityAtK(k,starQueriesMap, EPSILON, beta, DELTA);
                 elasticStability = GraphElasticSensitivity
                         .calculateElasticSensitivityAtK(k,
                                 (ElementPathBlock) element, EPSILON);
@@ -160,7 +166,7 @@ public class RunSymbolic
         }
     }
 
-    // TODO: change this to a while and add as limit the size of the query  
+    // TODO: change this to a while and add as limit the size of the query
     private static double smoothElasticSensitivity(Expr elasticSensitivity,
             double prevSensitivity, double beta, int k)
     {

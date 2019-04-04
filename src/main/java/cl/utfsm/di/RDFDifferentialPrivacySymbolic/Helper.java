@@ -12,16 +12,76 @@ import java.util.*;
 
 public class Helper
 {
-    private static String queryCreator(List<String> triples, String queryHead)
+    // private static String queryCreator(List<String> triples, String
+    // queryHead)
+    // {
+    // String finalQuery = queryHead + "{";
+    // Iterator<String> Iterator = triples.iterator();
+    // while (Iterator.hasNext())
+    // {
+    // finalQuery = finalQuery + Iterator.next() + ".\n ";
+    // }
+    // finalQuery = finalQuery + "}";
+    // return finalQuery;
+    // }
+
+    public static List<String> getJoinVariables(List<TriplePath> starQueryLeft,
+            List<TriplePath> starQueryRight)
     {
-        String finalQuery = queryHead + "{";
-        Iterator<String> Iterator = triples.iterator();
-        while (Iterator.hasNext())
+        List<String> rightVariables = new ArrayList<String>();
+        List<String> joinVariables = new ArrayList<String>();
+        for (TriplePath triplePath : starQueryRight)
         {
-            finalQuery = finalQuery + Iterator.next() + ".\n ";
+            if (triplePath.getSubject().isVariable())
+            {
+                rightVariables.add(triplePath.getSubject().getName());
+            }
         }
-        finalQuery = finalQuery + "}";
-        return finalQuery;
+        for (TriplePath triplePath : starQueryLeft)
+        {
+            if (triplePath.getSubject().isVariable())
+            {
+                if (rightVariables.contains(triplePath.getSubject().getName()))
+                {
+                    joinVariables.add(triplePath.getSubject().getName());
+                }
+            }
+        }
+        return joinVariables;
+    }
+
+    public static Map<String, List<TriplePath>> getStarPatterns(Query query)
+    {
+        List<Element> elements = ((ElementGroup) query.getQueryPattern())
+                .getElements();
+        List<TriplePath> tripleList = new ArrayList<TriplePath>();
+
+        Map<String, List<TriplePath>> starMap = new HashMap<String, List<TriplePath>>();
+
+        ElementPathBlock element = (ElementPathBlock) elements.get(0);
+        List<TriplePath> triplePath = element.getPattern().getList();
+        for (TriplePath tripleInQuery : triplePath)
+        {
+            if (tripleInQuery.getSubject().isVariable())
+            {
+                if (!starMap.containsKey(tripleInQuery.getSubject().getName()))
+                {
+                    tripleList = new ArrayList<TriplePath>();
+                    tripleList.add(tripleInQuery);
+                    starMap.put(tripleInQuery.getSubject().getName(),
+                            tripleList);
+                }
+                else
+                {
+                    tripleList = starMap
+                            .get(tripleInQuery.getSubject().getName());
+                    tripleList.add(tripleInQuery);
+                    starMap.put(tripleInQuery.getSubject().getName(),
+                            tripleList);
+                }
+            }
+        }
+        return starMap;
     }
 
     public static boolean isStarQuery(Query query)
@@ -37,7 +97,12 @@ public class Helper
             {
                 if (starQueryVariable.compareTo("") == 0)
                 {
-                    if (starQueryVariable.compareTo(starQueryVariable) != 0)
+                    starQueryVariable = tripleInQuery.getSubject().getName();
+                }
+                else
+                {
+                    if (starQueryVariable.compareTo(
+                            tripleInQuery.getSubject().getName()) != 0)
                     {
                         return false;
                     }
@@ -49,6 +114,56 @@ public class Helper
             }
         }
         return true;
+    }
+    
+    public static String getStarQueryString(List<TriplePath> starQuery)
+    {
+        StringBuffer result = new StringBuffer();
+        for (TriplePath triplePath : starQuery)
+        {
+            String subject = "";
+            if (triplePath.asTriple().getMatchSubject() instanceof Node_URI)
+            {
+                subject = "<" + triplePath.asTriple().getMatchSubject().getURI()
+                        + ">";
+            }
+            else if (triplePath.asTriple()
+                    .getMatchSubject() instanceof Node_Variable)
+            {
+                subject = "?" + triplePath.asTriple().getMatchSubject().getName();
+            }
+            String pred = "";
+            if (triplePath.asTriple().getMatchPredicate() instanceof Node_URI)
+            {
+                pred = "<" + triplePath.asTriple().getMatchPredicate().getURI()
+                        + ">";
+            }
+            else if (triplePath.asTriple()
+                    .getMatchPredicate() instanceof Node_Variable)
+            {
+                pred = "?" + triplePath.asTriple().getMatchPredicate().getName();
+            }
+            String object = "";
+            if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
+            {
+                object = "<" + triplePath.asTriple().getMatchObject().getURI()
+                        + ">";
+            }
+            else if (triplePath.asTriple()
+                    .getMatchObject() instanceof Node_Variable)
+            {
+                object = "?" + triplePath.asTriple().getMatchObject().getName();
+            }
+            result.append(subject);
+            result.append(" ");
+            result.append(pred);
+            result.append(" ");
+            result.append(object);
+            result.append(" . \n");
+        }
+        
+
+        return result.toString();
     }
 
     public static List<String> triplePartExtractor(TriplePath triplePath)
