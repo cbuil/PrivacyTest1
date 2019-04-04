@@ -111,7 +111,7 @@ public class HdtDataSource
 //        }
     }
 
-    public static ResultSet ExcecuteQuery(Query query)
+    public static ResultSet excecuteQuery(Query query)
     {
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples))

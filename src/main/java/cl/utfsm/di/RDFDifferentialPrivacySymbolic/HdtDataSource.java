@@ -77,11 +77,13 @@ public class HdtDataSource
                 return res;
             }
             else
+            {
                 return 0;
+            }
         }
     }
 
-    public static ResultSet ExcecuteQuery(Query query)
+    public static ResultSet excecuteQuery(Query query)
     {
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples))
@@ -107,11 +109,11 @@ public class HdtDataSource
             return resultSize;
         }
     }
-    
+
     public static int executeCountQuery(String queryString)
     {
         Query query = QueryFactory.create(queryString);
-        ResultSet results = HdtDataSource.ExcecuteQuery(query);
+        ResultSet results = HdtDataSource.excecuteQuery(query);
         QuerySolution soln = results.nextSolution();
         RDFNode x = soln.get(soln.varNames().next());
         return x.asLiteral().getInt();

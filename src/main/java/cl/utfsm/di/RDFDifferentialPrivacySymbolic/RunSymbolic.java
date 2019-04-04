@@ -1,31 +1,28 @@
 package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
-import org.apache.commons.cli.*;
-import org.apache.commons.math3.distribution.LaplaceDistribution;
-import org.apache.jena.graph.Triple;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.sparql.core.BasicPattern;
-import org.apache.jena.sparql.core.PathBlock;
-import org.apache.jena.sparql.syntax.Element;
-import org.apache.jena.sparql.syntax.ElementGroup;
-import org.apache.jena.sparql.syntax.ElementPathBlock;
-import org.apache.jena.sparql.syntax.ElementTriplesBlock;
-
-import cl.utfsm.di.RDFDifferentialPrivacy.Helper;
-import cl.utfsm.di.RDFDifferentialPrivacySymbolic.GraphElasticSensitivity;
-
-import symjava.bytecode.BytecodeFunc;
-import symjava.symbolic.*;
 import static symjava.symbolic.Symbol.x;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Random;
+import java.util.Scanner;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.sparql.syntax.Element;
+import org.apache.jena.sparql.syntax.ElementGroup;
+import org.apache.jena.sparql.syntax.ElementPathBlock;
+
+import symjava.bytecode.BytecodeFunc;
+import symjava.symbolic.Expr;
+import symjava.symbolic.Func;
 
 public class RunSymbolic
 {
@@ -33,8 +30,6 @@ public class RunSymbolic
             throws IOException, CloneNotSupportedException
     {
 
-        // delta parameter: use 1/n^2, with n = 100000
-        double DELTA = 1 / (Math.pow(10000000, 2));
 
         // privacy budget
         double EPSILON = 0.1;
@@ -99,6 +94,14 @@ public class RunSymbolic
 
         HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
         Query q = QueryFactory.create(queryString);
+        
+        String construct = queryString.replaceFirst("SELECT.*WHERE",
+                "CONSTRUCT WHERE");
+        Query constructQuery = QueryFactory.create(construct);
+        double tripSize = HdtDataSource.getTripSize(constructQuery);
+        
+        // delta parameter: use 1/n^2, with n = size of the data in the query
+        double DELTA = 1 / (Math.pow(tripSize, 2));
 
         double beta = EPSILON / (2 * Math.log(2 / DELTA));
 

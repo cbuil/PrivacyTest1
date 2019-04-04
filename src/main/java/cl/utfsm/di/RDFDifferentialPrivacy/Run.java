@@ -121,7 +121,7 @@ public class Run
                     LaplaceDistribution l = new LaplaceDistribution(u, scale);
 
                     Query query = QueryFactory.create(queryString);
-                    ResultSet results = HdtDataSource.ExcecuteQuery(query);
+                    ResultSet results = HdtDataSource.excecuteQuery(query);
                     QuerySolution soln = results.nextSolution();
                     RDFNode x = soln.get(soln.varNames().next());
                     int result = x.asLiteral().getInt();
