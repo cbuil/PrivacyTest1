@@ -6,11 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.core.PathBlock;
 import org.apache.jena.sparql.core.TriplePath;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 
+import cl.utfsm.di.RDFDifferentialPrivacySymbolic.HdtDataSource;
 import symjava.bytecode.BytecodeFunc;
 import symjava.symbolic.Expr;
 import symjava.symbolic.Func;
@@ -98,15 +100,6 @@ public class GraphElasticSensitivity
                             HdtDataSource.getCountResults(auxtriple,
                                     joinVariables.get(1))));
 
-                    // res = k + Math.min(HdtDataSource.getCountResults(triple,
-                    // joinVariables.get(0)),
-                    // HdtDataSource.getCountResults(triple,
-                    // joinVariables.get(1)));
-                    // res2 = k +
-                    // Math.min(HdtDataSource.getCountResults(auxtriple,
-                    // joinVariables.get(0)),
-                    // HdtDataSource.getCountResults(auxtriple,
-                    // joinVariables.get(1)));
                 }
                 else
                 {
@@ -380,111 +373,114 @@ public class GraphElasticSensitivity
 
     public static Expr calculateElasticSensitivityAtK(int k,
             Map<String, List<TriplePath>> starQueriesMap, double EPSILON,
-            double beta, double DELTA) throws CloneNotSupportedException
+            cl.utfsm.di.RDFDifferentialPrivacySymbolic.HdtDataSource hdtDataSource)
+            throws CloneNotSupportedException
     {
         StarQuery starPrime = new StarQuery();
-        for (String joinVariable : starQueriesMap.keySet())
+        List<String> starVariables = new ArrayList<String>();
+        starVariables.addAll(starQueriesMap.keySet());
+        Iterator starsIterator = starVariables.iterator();
+        while (starsIterator.hasNext())
         {
-            StarQuery starQueryRight = new StarQuery(
-                    starQueriesMap.get(joinVariable));
-            starQueriesMap.remove(joinVariable);
-            
+            String starVariable = (String) starsIterator.next();
+            StarQuery starQueryLeft = new StarQuery(
+                    starQueriesMap.get(starVariable));
+            starQueriesMap.remove(starVariable);
+
             Expr elasticStabilityLeft = Expr.valueOf(0);
             double smoothSensitivityLeft = 0.0;
             elasticStabilityLeft = x;
             double sensitivity = k;
+            starQueryLeft.setElasticStability(elasticStabilityLeft);
             // left side smooth sensitivity
+
+            String construct = "CONSTRUCT WHERE { " + starQueryLeft.toString()
+                    + "}";
+            System.out.println(construct);
+            Query constructQuery = QueryFactory.create(construct);
+            double tripSize = HdtDataSource.getTripSize(constructQuery);
+            double DELTA = 1 / (Math.pow(tripSize, 2));
+            double beta = EPSILON / (2 * Math.log(2 / DELTA));
+
             smoothSensitivityLeft = smoothElasticSensitivity(
                     elasticStabilityLeft, sensitivity, beta, k);
             System.out.println("star query (smooth) sensitivity: "
                     + smoothSensitivityLeft);
+            starQueryLeft.setQuerySentitivity(smoothSensitivityLeft);
 
             Expr res = Expr.valueOf(0);
-            Expr res2 = Expr.valueOf(0);
 
             // base case: i == 0 && bgpIt.hasNext()
-            if (!starQueriesMap.keySet().isEmpty())
+            if (starsIterator.hasNext() && starPrime.getTriples().isEmpty())
             {
-                Expr elasticStabilityRight = Expr.valueOf(0);
-                double smoothSensitivityRight = 0.0;
-                elasticStabilityRight = x;
+                starVariable = (String) starsIterator.next();
+                starPrime = new StarQuery(starQueriesMap.get(starVariable));
+                starQueriesMap.remove(starVariable);
+
+                // must depend from the size of the database (the sensitivity)
+                construct = "CONSTRUCT WHERE { "
+                        + starPrime.toString() + "}";
+                System.out.println(construct);
+                constructQuery = QueryFactory.create(construct);
+                tripSize = HdtDataSource.getTripSize(constructQuery);
+                DELTA = 1 / (Math.pow(tripSize, 2));
+                beta = EPSILON / (2 * Math.log(2 / DELTA));
+
+                Expr elasticStabilityPrime = Expr.valueOf(0);
+                double smoothSensitivityPrime = 0.0;
+                elasticStabilityPrime = x;
                 sensitivity = k;
-                smoothSensitivityRight = smoothElasticSensitivity(
-                        elasticStabilityRight, sensitivity, beta, k);
+                smoothSensitivityPrime = smoothElasticSensitivity(
+                        elasticStabilityPrime, sensitivity, beta, k);
                 System.out.println("star query (smooth) sensitivity: "
-                        + smoothSensitivityRight);
+                        + smoothSensitivityPrime);
+                starPrime.setQuerySentitivity(smoothSensitivityPrime);
+                starPrime.setElasticStability(elasticStabilityPrime);
+            }
 
-                joinVariable = starQueriesMap.keySet().iterator().next();
-                StarQuery starQueryLeft = new StarQuery(
-                        starQueriesMap.get(joinVariable));
-                starQueriesMap.remove(joinVariable);
+            List<String> joinVariables = starQueryLeft.getVariables();
+            joinVariables.retainAll(starPrime.getVariables());
 
-                List<String> joinVariables = starQueryLeft.getVariables();
-                joinVariables.retainAll(starQueryRight.getVariables());
+            if (joinVariables.size() > 0)
+            {
+                // we only take into account one join variable
+                // max(mf_k(a,r_1,x)S_R(r_2,x), mf_k(b,r_2,x)S_R(r_1,x))
 
-                if (joinVariables.size() > 1)
-                {
-                    // si son 2 variables participando en el join, se elige la
-                    // que tenga la minima maxima frecuencia
-                    
-                    int mostFreqValue = maxFreq(aux1.get(0), rprime);
+                Expr mostFreqValueLeft = maxFreq(joinVariables.get(0),
+                        starQueryLeft);
+                Expr mostFreqValueRight = maxFreq(joinVariables.get(0),
+                        starPrime);
 
-                    res = x.plus(Math.min(HdtDataSource.getCountResults(
-                            starQueryRight.toString(), joinVariables.get(0)),
-                            HdtDataSource.getCountResults(
-                                    starQueryLeft.toString(),
-                                    joinVariables.get(1))));
-                    res2 = x.plus(Math.min(HdtDataSource.getCountResults(
-                            starQueryRight.toString(), joinVariables.get(0)),
-                            HdtDataSource.getCountResults(
-                                    starQueryLeft.toString(),
-                                    joinVariables.get(1))));
-                }
-                else
-                {
-                    res = x.plus(HdtDataSource.getCountResults(
-                            starQueryRight.toString(), joinVariables.get(0)));
-                    res2 = x.plus(HdtDataSource.getCountResults(
-                            starQueryLeft.toString(), joinVariables.get(0)));
-                    
-                    Func f1 = new Func("f1", mostFreqValue);
-                    BytecodeFunc func1 = f1.toBytecodeFunc();
-
-                    Func f2 = new Func("f2", elasticStability.multiply(res));
-                    BytecodeFunc func2 = f2.toBytecodeFunc();
-                    
-                    elasticStability = Expr
-                            .valueOf(Math.max(Math.round(func1.apply(1)),
-                                    Math.round(func2.apply(1))));
-
-                    // elasticStability = Math.max(mostFreqValue * 1, res *
-                    // elasticStability);
-                    rprime = new Join("r" + String.valueOf(i + 1) + "prime",
-                            joinVariables, (HashSet) ancestors.clone(), rprime,
-                            triple);
-                }
-
-                // // Check para ver si existen ancestros en comun
-                // elasticStability = Math.max(res*1,res2*1);
-
-                // Para poder obtener el maximo se evaluara la funcion en
-                // una distancia de 0
-                Func f1 = new Func("f1", res);
+                Func f1 = new Func("f1", mostFreqValueLeft
+                        .multiply(starPrime.getElasticStability()));
                 BytecodeFunc func1 = f1.toBytecodeFunc();
 
-                Func f2 = new Func("f2", res2);
+                Func f2 = new Func("f2", mostFreqValueRight
+                        .multiply(starQueryLeft.getElasticStability()));
                 BytecodeFunc func2 = f2.toBytecodeFunc();
 
-                elasticStabilityRight = Expr
-                        .valueOf(Math.max(func1.apply(1), func2.apply(1)));
+                res = x.plus(Math.max(Math.round(func1.apply(1)),
+                        Math.round(func2.apply(1))));
 
-                // se define el Join para ser utilizado en la siguiente
-                // iteracion
-                starPrime = new StarQuery(starQueryRight.getTriples());
+                // I generate new starQueryPrime
+                // starPrime = new StarQuery(starQueryRight.getTriples());
                 starPrime.addStarQuery(starQueryLeft.getTriples());
+                starPrime.setElasticStability(res);
             }
         }
-        return null;
+        return starPrime.getElasticStability();
+
+    }
+
+    private static Expr maxFreq(String var, StarQuery starQuery)
+            throws CloneNotSupportedException
+    {
+        // base case: mf(a,r_1,x)
+        Expr expr = x;
+        expr = expr
+                .plus(HdtDataSource.getCountResults(starQuery.toString(), var));
+        return expr;
+
     }
 
     // TODO: change this to a while and add as limit the size of the query

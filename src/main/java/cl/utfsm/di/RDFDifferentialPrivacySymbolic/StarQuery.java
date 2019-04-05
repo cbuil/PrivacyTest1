@@ -7,9 +7,18 @@ import org.apache.jena.graph.Node_URI;
 import org.apache.jena.graph.Node_Variable;
 import org.apache.jena.sparql.core.TriplePath;
 
+import symjava.symbolic.Expr;
+
 public class StarQuery
 {
     private List<TriplePath> triples;
+
+    // the smoothed sensitivity of the star query
+    private double querySentitivity;
+
+    // elastic stability is the formula by which we calculate the sensitivity,
+    // only appears when there are more than two star queries
+    private Expr elasticStability;
 
     public StarQuery(List<TriplePath> triples)
     {
@@ -18,7 +27,7 @@ public class StarQuery
 
     public StarQuery()
     {
-        // TODO Auto-generated constructor stub
+        this.triples = new ArrayList<TriplePath>();
     }
 
     public boolean addStarQuery(List<TriplePath> triples)
@@ -126,5 +135,25 @@ public class StarQuery
     public List<TriplePath> getTriples()
     {
         return triples;
+    }
+
+    public double getQuerySentitivity()
+    {
+        return querySentitivity;
+    }
+
+    public void setQuerySentitivity(double res)
+    {
+        this.querySentitivity = res;
+    }
+
+    public Expr getElasticStability()
+    {
+        return elasticStability;
+    }
+
+    public void setElasticStability(Expr elasticStability)
+    {
+        this.elasticStability = elasticStability;
     }
 }

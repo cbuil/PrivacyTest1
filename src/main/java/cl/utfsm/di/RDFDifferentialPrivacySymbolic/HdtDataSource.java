@@ -53,9 +53,9 @@ public class HdtDataSource
     {
 
         variableName = variableName.replace("“", "").replace("”", "");
-        String maxFreqQueryString = "select (count(" + variableName
-                + ") as ?count) where { " + starQuery + " " + "} GROUP BY "
-                + variableName + " " + "ORDER BY " + variableName
+        String maxFreqQueryString = "select (count(?" + variableName
+                + ") as ?count) where { " + starQuery + " " + "} GROUP BY ?"
+                + variableName + " " + "ORDER BY ?" + variableName
                 + " DESC (?count) LIMIT 1 ";
 
         Query query = QueryFactory.create(maxFreqQueryString);

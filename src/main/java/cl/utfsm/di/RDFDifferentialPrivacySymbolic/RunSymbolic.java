@@ -103,7 +103,6 @@ public class RunSymbolic
 
         // delta parameter: use 1/n^2, with n = size of the data in the query
         double DELTA = 1 / (Math.pow(tripSize, 2));
-
         double beta = EPSILON / (2 * Math.log(2 / DELTA));
 
         ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
@@ -131,10 +130,11 @@ public class RunSymbolic
             else
             {
                 elasticStability = GraphElasticSensitivity
-                        .calculateElasticSensitivityAtK(k,starQueriesMap, EPSILON, beta, DELTA);
-                elasticStability = GraphElasticSensitivity
-                        .calculateElasticSensitivityAtK(k,
-                                (ElementPathBlock) element, EPSILON);
+                        .calculateElasticSensitivityAtK(k, starQueriesMap,
+                                EPSILON, hdtDataSource);
+//                elasticStability = GraphElasticSensitivity
+//                        .calculateElasticSensitivityAtK(k,
+//                                (ElementPathBlock) element, EPSILON);
 
                 Func f = new Func("f", elasticStability);
                 BytecodeFunc func = f.toBytecodeFunc();
