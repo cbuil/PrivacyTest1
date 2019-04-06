@@ -26,8 +26,16 @@ import symjava.bytecode.BytecodeFunc;
 import symjava.symbolic.Expr;
 import symjava.symbolic.Func;
 
+//Import log4j classes.
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class RunSymbolic
 {
+
+    private static Logger logger = LogManager
+            .getLogger(RunSymbolic.class.getName());
+
     public static void main(String[] args)
             throws IOException, CloneNotSupportedException
     {
@@ -57,7 +65,7 @@ public class RunSymbolic
             }
             else
             {
-                System.out.println("Missing SPARQL query ");
+                logger.info("Missing SPARQL query ");
             }
             if (cmd.hasOption("f"))
             {
@@ -68,7 +76,7 @@ public class RunSymbolic
             }
             else
             {
-                System.out.println("Missing SPARQL query file");
+                logger.info("Missing SPARQL query file");
             }
             if (cmd.hasOption("d"))
             {
@@ -76,7 +84,7 @@ public class RunSymbolic
             }
             else
             {
-                System.out.println("Missing data file");
+                logger.info("Missing data file");
             }
             if (cmd.hasOption("e"))
             {
@@ -84,7 +92,7 @@ public class RunSymbolic
             }
             else
             {
-                System.out.println("Missing query directory");
+                logger.info("Missing query directory");
             }
         }
         catch (ParseException | FileNotFoundException e1)
@@ -100,7 +108,7 @@ public class RunSymbolic
                 "CONSTRUCT WHERE");
         Query constructQuery = QueryFactory.create(construct);
         double tripSize = HdtDataSource.getTripSize(constructQuery);
-
+        // tripSize = 1000000000;
         // delta parameter: use 1/n^2, with n = size of the data in the query
         double DELTA = 1 / (Math.pow(tripSize, 2));
         double beta = EPSILON / (2 * Math.log(2 / DELTA));
@@ -122,9 +130,10 @@ public class RunSymbolic
             {
                 elasticStability = x;
                 double sensitivity = k;
-                smoothSensitivity = smoothElasticSensitivity(elasticStability,
-                        sensitivity, beta, k);
-                System.out.println("star query (smooth) sensitivity: "
+                smoothSensitivity = GraphElasticSensitivity
+                        .smoothElasticSensitivity(elasticStability, sensitivity,
+                                beta, k);
+                logger.info("star query (smooth) sensitivity: "
                         + smoothSensitivity);
             }
             else
@@ -132,18 +141,16 @@ public class RunSymbolic
                 elasticStability = GraphElasticSensitivity
                         .calculateElasticSensitivityAtK(k, starQueriesMap,
                                 EPSILON, hdtDataSource);
-//                elasticStability = GraphElasticSensitivity
-//                        .calculateElasticSensitivityAtK(k,
-//                                (ElementPathBlock) element, EPSILON);
+                // elasticStability = GraphElasticSensitivity
+                // .calculateElasticSensitivityAtK(k,
+                // (ElementPathBlock) element, EPSILON);
 
                 Func f = new Func("f", elasticStability);
                 BytecodeFunc func = f.toBytecodeFunc();
-                System.out.println(
-                        "Elastic Stability: " + Math.round(func.apply(2)));
-                smoothSensitivity = smoothElasticSensitivity(elasticStability,
-                        0, beta, 0);
-                System.out.println(
-                        "Path Smooth Sensitivity: " + smoothSensitivity);
+                logger.info("Elastic Stability: " + Math.round(func.apply(2)));
+                smoothSensitivity = GraphElasticSensitivity
+                        .smoothElasticSensitivity(elasticStability, 0, beta, 0);
+                logger.info("Path Smooth Sensitivity: " + smoothSensitivity);
             }
 
             // add noise using Laplace Probability Density Function
@@ -159,30 +166,10 @@ public class RunSymbolic
             double finalResult1 = countQueryResult + noise;
             // double finalResult2 = countQueryResult + l.sample();
 
-            System.out.println("Original result: " + countQueryResult);
-            System.out.println("Noise added: " + Math.round(noise));
-            System.out.println("Private Result: " + Math.round(finalResult1));
+            logger.info("Original result: " + countQueryResult);
+            logger.info("Noise added: " + Math.round(noise));
+            logger.info("Private Result: " + Math.round(finalResult1));
 
-        }
-    }
-
-    // TODO: change this to a while and add as limit the size of the query
-    private static double smoothElasticSensitivity(Expr elasticSensitivity,
-            double prevSensitivity, double beta, int k)
-    {
-        Func f1 = new Func("f1", elasticSensitivity);
-        BytecodeFunc func1 = f1.toBytecodeFunc();
-
-        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
-
-        if (smoothSensitivity == 0 || (smoothSensitivity > prevSensitivity))
-        {
-            return prevSensitivity;
-        }
-        else
-        {
-            return smoothElasticSensitivity(elasticSensitivity,
-                    smoothSensitivity, beta, k + 1);
         }
     }
 

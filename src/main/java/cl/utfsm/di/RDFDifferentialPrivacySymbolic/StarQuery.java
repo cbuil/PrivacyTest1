@@ -32,23 +32,7 @@ public class StarQuery
 
     public boolean addStarQuery(List<TriplePath> triples)
     {
-        String starQueryVariable = this.triples.get(0).getSubject().getName();
-        for (TriplePath tripleInQuery : triples)
-        {
-            if (tripleInQuery.getSubject().isVariable())
-            {
-                if (starQueryVariable
-                        .compareTo(tripleInQuery.getSubject().getName()) != 0)
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
-        return triples.addAll(triples);
+        return this.triples.addAll(triples);
     }
 
     public List<String> getVariables()
