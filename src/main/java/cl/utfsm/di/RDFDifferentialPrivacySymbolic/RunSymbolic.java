@@ -22,9 +22,7 @@ import org.apache.jena.sparql.syntax.Element;
 import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
 
-import symjava.bytecode.BytecodeFunc;
 import symjava.symbolic.Expr;
-import symjava.symbolic.Func;
 
 //Import log4j classes.
 import org.apache.logging.log4j.LogManager;
@@ -145,9 +143,7 @@ public class RunSymbolic
                 // .calculateElasticSensitivityAtK(k,
                 // (ElementPathBlock) element, EPSILON);
 
-                Func f = new Func("f", elasticStability);
-                BytecodeFunc func = f.toBytecodeFunc();
-                logger.info("Elastic Stability: " + Math.round(func.apply(2)));
+                logger.info("Elastic Stability: " + elasticStability);
                 smoothSensitivity = GraphElasticSensitivity
                         .smoothElasticSensitivity(elasticStability, 0, beta, 0);
                 logger.info("Path Smooth Sensitivity: " + smoothSensitivity);

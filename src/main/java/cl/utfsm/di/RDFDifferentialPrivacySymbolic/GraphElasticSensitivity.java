@@ -461,9 +461,10 @@ public class GraphElasticSensitivity
 
                 Expr mostFreqValueLeft = maxFreq(joinVariables.get(0),
                         starQueryLeft);
+                logger.info("mostFreqValueLeft: " + mostFreqValueLeft);
                 Expr mostFreqValueRight = maxFreq(joinVariables.get(0),
                         starPrime);
-
+                logger.info("mostFreqValueRight: " + mostFreqValueRight);
                 Func f1 = new Func("f1", mostFreqValueLeft
                         .multiply(starPrime.getElasticStability()));
 

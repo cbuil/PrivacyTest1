@@ -19,6 +19,8 @@ public class StarQuery
     // elastic stability is the formula by which we calculate the sensitivity,
     // only appears when there are more than two star queries
     private Expr elasticStability;
+    
+    private Expr maxFrequency;
 
     public StarQuery(List<TriplePath> triples)
     {
@@ -139,5 +141,15 @@ public class StarQuery
     public void setElasticStability(Expr elasticStability)
     {
         this.elasticStability = elasticStability;
+    }
+
+    public Expr getMaxFrequency()
+    {
+        return maxFrequency;
+    }
+
+    public void setMaxFrequency(Expr maxFrequency)
+    {
+        this.maxFrequency = maxFrequency;
     }
 }
