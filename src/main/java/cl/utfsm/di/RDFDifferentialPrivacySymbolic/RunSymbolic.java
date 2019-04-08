@@ -3,8 +3,12 @@ package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 import static symjava.symbolic.Symbol.x;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -33,13 +37,13 @@ public class RunSymbolic
 
     private static Logger logger = LogManager
             .getLogger(RunSymbolic.class.getName());
+    
+    // privacy budget
+    private static double EPSILON = 0.1;
 
     public static void main(String[] args)
             throws IOException, CloneNotSupportedException
     {
-
-        // privacy budget
-        double EPSILON = 0.1;
 
         // create Options object
         Options options = new Options();
@@ -48,10 +52,12 @@ public class RunSymbolic
         options.addOption("f", "qFile", true, "input SPARQL query File");
         options.addOption("d", "data", true, "HDT data file");
         options.addOption("e", "dir", true, "query directory");
+        options.addOption("o", "dir", true, "output file");
         String queryString = "";
         String queryFile = "";
         String queryDir = "";
         String dataFile = "";
+        String outputFile = "";
 
         CommandLineParser parser = new DefaultParser();
         try
@@ -68,8 +74,8 @@ public class RunSymbolic
             if (cmd.hasOption("f"))
             {
                 queryFile = cmd.getOptionValue("f");
-                queryString = new Scanner(new File(queryFile))
-                        .useDelimiter("\\Z").next();
+//                queryString = new Scanner(new File(queryFile))
+//                        .useDelimiter("\\Z").next();
                 // transform into Jena Query object
             }
             else
@@ -92,14 +98,51 @@ public class RunSymbolic
             {
                 logger.info("Missing query directory");
             }
+            if (cmd.hasOption("o"))
+            {
+                outputFile = cmd.getOptionValue("o");
+            }
+            else
+            {
+                logger.info("Missing output file");
+            }
         }
-        catch (ParseException | FileNotFoundException e1)
+        catch (ParseException e1)
         {
             // TODO Auto-generated catch block
-            e1.printStackTrace();
+            e1.getMessage();
+            System.exit(-1);
         }
-
+        
         HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
+        
+        Path queryLocation = Paths.get(queryFile);
+        if (Files.isRegularFile(queryLocation))
+        {
+            queryString = new Scanner(new File(queryFile))
+                    .useDelimiter("\\Z").next();
+            logger.info(queryString);
+            runAnalysis(queryString, hdtDataSource, outputFile);
+        }
+        else if (Files.isDirectory(queryLocation))
+        {
+            Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
+                    .filter(p -> p.toString().endsWith(".rq"))
+                    .iterator();
+            while (filesPath.hasNext())
+            {
+                queryString = new Scanner(filesPath.next())
+                        .useDelimiter("\\Z").next();
+                logger.info(queryString);
+                runAnalysis(queryString, hdtDataSource, outputFile);
+            }
+        }
+    }
+
+    private static void runAnalysis(String queryString,
+            HdtDataSource hdtDataSource, String outpuFile)
+            throws IOException, CloneNotSupportedException
+    {
         Query q = QueryFactory.create(queryString);
 
         String construct = queryString.replaceFirst("SELECT.*WHERE",
@@ -115,6 +158,7 @@ public class RunSymbolic
         List<Element> elementList = queryPattern.getElements();
         double smoothSensitivity = 0.0;
         Element element = elementList.get(0);
+        boolean starQuery = false;
         if (element instanceof ElementPathBlock)
         {
             Expr elasticStability = Expr.valueOf(0);
@@ -126,6 +170,7 @@ public class RunSymbolic
 
             if (Helper.isStarQuery(q))
             {
+                starQuery = true;
                 elasticStability = x;
                 double sensitivity = k;
                 smoothSensitivity = GraphElasticSensitivity
@@ -165,6 +210,39 @@ public class RunSymbolic
             logger.info("Original result: " + countQueryResult);
             logger.info("Noise added: " + Math.round(noise));
             logger.info("Private Result: " + Math.round(finalResult1));
+
+            StringBuffer csvLine = new StringBuffer();
+            csvLine.append(queryString.replaceAll("\n", " "));
+            csvLine.append(",");
+            csvLine.append(countQueryResult);
+            csvLine.append(",");
+            csvLine.append(finalResult1);
+            csvLine.append(",");
+            int queryTriples = ((ElementPathBlock) element).getPattern().size();
+            csvLine.append(queryTriples);
+            csvLine.append(",");
+            if (starQuery)
+            {
+                csvLine.append("starQuery");
+            }
+            else
+            {
+                csvLine.append("NOstarQuery");
+            }
+            csvLine.append(",");
+            csvLine.append(EPSILON);
+            csvLine.append(",");
+            csvLine.append(scale);
+            csvLine.append(",");
+            csvLine.append(elasticStability);
+            csvLine.append(",");
+            csvLine.append(k);
+            csvLine.append(",");
+            csvLine.append(tripSize);
+            csvLine.append("\n");
+
+            Files.write(Paths.get(outpuFile), csvLine.toString().getBytes(),
+                    StandardOpenOption.APPEND);
 
         }
     }

@@ -36,15 +36,11 @@
 					<execution>
 						<id>run-dp</id>
 						<configuration>
-							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run</mainClass>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
 						</configuration>
 					</execution>
-					<execution>
-						<id>run-dp-dir</id>
-						<configuration>
-							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.RunDirectory</mainClass>
-						</configuration>
-					</execution>
+					<!-- <execution> <id>run-dp-dir</id> <configuration> <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunDirectory</mainClass> 
+						</configuration> </execution> -->
 					<execution>
 						<id>run-query-gen</id>
 						<configuration>
@@ -52,6 +48,9 @@
 						</configuration>
 					</execution>
 				</executions>
+				<configuration>
+					<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
+				</configuration>
 			</plugin>
 		</plugins>
 
@@ -120,8 +119,6 @@
 			<groupId>symjava.symbolic</groupId>
 			<artifactId>SymJava</artifactId>
 			<version>1.1.2</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/SymJava-1.1.2.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
