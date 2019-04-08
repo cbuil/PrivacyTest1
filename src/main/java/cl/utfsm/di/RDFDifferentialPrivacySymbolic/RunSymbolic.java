@@ -3,6 +3,7 @@ package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 import static symjava.symbolic.Symbol.x;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +38,7 @@ public class RunSymbolic
 
     private static Logger logger = LogManager
             .getLogger(RunSymbolic.class.getName());
-    
+
     // privacy budget
     private static double EPSILON = 0.1;
 
@@ -74,8 +75,8 @@ public class RunSymbolic
             if (cmd.hasOption("f"))
             {
                 queryFile = cmd.getOptionValue("f");
-//                queryString = new Scanner(new File(queryFile))
-//                        .useDelimiter("\\Z").next();
+                // queryString = new Scanner(new File(queryFile))
+                // .useDelimiter("\\Z").next();
                 // transform into Jena Query object
             }
             else
@@ -113,29 +114,41 @@ public class RunSymbolic
             e1.getMessage();
             System.exit(-1);
         }
-        
-        HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
-        
-        Path queryLocation = Paths.get(queryFile);
-        if (Files.isRegularFile(queryLocation))
+
+        try
         {
-            queryString = new Scanner(new File(queryFile))
-                    .useDelimiter("\\Z").next();
-            logger.info(queryString);
-            runAnalysis(queryString, hdtDataSource, outputFile);
-        }
-        else if (Files.isDirectory(queryLocation))
-        {
-            Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
-                    .filter(p -> p.toString().endsWith(".rq"))
-                    .iterator();
-            while (filesPath.hasNext())
+            HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
+
+            Path queryLocation = Paths.get(queryFile);
+            if (Files.isRegularFile(queryLocation))
             {
-                queryString = new Scanner(filesPath.next())
+                queryString = new Scanner(new File(queryFile))
                         .useDelimiter("\\Z").next();
                 logger.info(queryString);
                 runAnalysis(queryString, hdtDataSource, outputFile);
             }
+            else if (Files.isDirectory(queryLocation))
+            {
+                Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
+                        .filter(p -> p.toString().endsWith(".rq")).iterator();
+                while (filesPath.hasNext())
+                {
+                    queryString = new Scanner(filesPath.next())
+                            .useDelimiter("\\Z").next();
+                    logger.info(queryString);
+                    runAnalysis(queryString, hdtDataSource, outputFile);
+                }
+            } else {
+                if(Files.notExists(queryLocation)) {
+                    throw new FileNotFoundException("No query file");
+                }
+            }
+        }
+        catch (IOException | CloneNotSupportedException e1)
+        {
+            // TODO Auto-generated catch block
+            System.out.println("Exception: " + e1.getMessage());
+            System.exit(-1);
         }
     }
 
