@@ -528,7 +528,6 @@ public class GraphElasticSensitivity
             if (smoothSensitivity > prevSensitivity)
             {
                 prevSensitivity = smoothSensitivity;
-                return prevSensitivity;
             }
             k++;
         }
