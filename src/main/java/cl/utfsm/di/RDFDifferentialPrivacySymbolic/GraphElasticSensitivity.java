@@ -24,7 +24,8 @@ import static symjava.symbolic.Symbol.x;
 
 public class GraphElasticSensitivity
 {
-    private static Logger logger = LogManager.getLogger(GraphElasticSensitivity.class.getName());
+    private static Logger logger = LogManager
+            .getLogger(GraphElasticSensitivity.class.getName());
 
     public static Expr calculateElasticSensitivityAtK(int k,
             ElementPathBlock element, double EPSILON)
@@ -83,8 +84,7 @@ public class GraphElasticSensitivity
                 }
                 else
                 {
-                    logger.error(
-                            "Join key missing, query not accepted");
+                    logger.error("Join key missing, query not accepted");
                     System.exit(0);
                 }
 
@@ -242,8 +242,7 @@ public class GraphElasticSensitivity
                 }
                 else
                 {
-                    logger.error(
-                            "Join key missing, query not accepted");
+                    logger.error("Join key missing, query not accepted");
                     System.exit(0);
                 }
 
@@ -413,12 +412,12 @@ public class GraphElasticSensitivity
             String construct = "CONSTRUCT WHERE { " + starQueryLeft.toString()
                     + "}";
             Query constructQuery = QueryFactory.create(construct);
-            double tripSize = HdtDataSource.getTripSize(constructQuery);
+            int tripSize = HdtDataSource.getTripSize(constructQuery);
             double DELTA = 1 / (Math.pow(tripSize, 2));
             double beta = EPSILON / (2 * Math.log(2 / DELTA));
 
             smoothSensitivityLeft = smoothElasticSensitivity(
-                    elasticStabilityLeft, sensitivity, beta, k);
+                    elasticStabilityLeft, sensitivity, beta, k, tripSize);
             logger.info("star query (smooth) sensitivity: "
                     + smoothSensitivityLeft);
             starQueryLeft.setQuerySentitivity(smoothSensitivityLeft);
@@ -444,7 +443,7 @@ public class GraphElasticSensitivity
                 elasticStabilityPrime = x;
                 sensitivity = k;
                 smoothSensitivityPrime = smoothElasticSensitivity(
-                        elasticStabilityPrime, sensitivity, beta, k);
+                        elasticStabilityPrime, sensitivity, beta, k, tripSize);
                 logger.info("star query prime (smooth) sensitivity: "
                         + smoothSensitivityPrime);
                 starPrime.setQuerySentitivity(smoothSensitivityPrime);
@@ -480,6 +479,12 @@ public class GraphElasticSensitivity
                 starPrime.addStarQuery(starQueryLeft.getTriples());
                 starPrime.setElasticStability(res);
             }
+            else
+            {
+                starPrime.addStarQuery(starQueryLeft.getTriples());
+                starPrime.setElasticStability(
+                        starQueryLeft.getElasticStability());
+            }
         }
         return starPrime.getElasticStability();
 
@@ -498,21 +503,34 @@ public class GraphElasticSensitivity
 
     // TODO: change this to a while and add as limit the size of the query
     public static double smoothElasticSensitivity(Expr elasticSensitivity,
-            double prevSensitivity, double beta, int k)
+            double prevSensitivity, double beta, int k, int tripSize)
     {
-        Func f1 = new Func("f1", elasticSensitivity);
-        BytecodeFunc func1 = f1.toBytecodeFunc();
+        // Func f1 = new Func("f1", elasticSensitivity);
+        // BytecodeFunc func1 = f1.toBytecodeFunc();
+        //
+        // double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
+        //
+        // if (smoothSensitivity == 0 || (smoothSensitivity < prevSensitivity))
+        // {
+        // return prevSensitivity;
+        // }
+        // else
+        // {
+        // return smoothElasticSensitivity(elasticSensitivity,
+        // smoothSensitivity, beta, k + 1, tripSize);
+        // }
 
-        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
-
-        if (smoothSensitivity == 0 || (smoothSensitivity < prevSensitivity))
+        for (int i = 0; i < tripSize; i++)
         {
-            return prevSensitivity;
+            Func f1 = new Func("f1", elasticSensitivity);
+            BytecodeFunc func1 = f1.toBytecodeFunc();
+            double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
+            if (smoothSensitivity > prevSensitivity)
+            {
+                prevSensitivity = smoothSensitivity;
+            }
+            k++;
         }
-        else
-        {
-            return smoothElasticSensitivity(elasticSensitivity,
-                    smoothSensitivity, beta, k + 1);
-        }
+        return prevSensitivity;
     }
 }

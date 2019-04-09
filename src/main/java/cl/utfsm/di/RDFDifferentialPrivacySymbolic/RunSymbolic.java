@@ -102,6 +102,10 @@ public class RunSymbolic
             if (cmd.hasOption("o"))
             {
                 outputFile = cmd.getOptionValue("o");
+                if (!Files.exists(Paths.get(outputFile)))
+                {
+                    Files.createFile(Paths.get(outputFile));
+                }
             }
             else
             {
@@ -110,7 +114,6 @@ public class RunSymbolic
         }
         catch (ParseException e1)
         {
-            // TODO Auto-generated catch block
             e1.getMessage();
             System.exit(-1);
         }
@@ -125,7 +128,7 @@ public class RunSymbolic
                 queryString = new Scanner(new File(queryFile))
                         .useDelimiter("\\Z").next();
                 logger.info(queryString);
-                runAnalysis(queryString, hdtDataSource, outputFile);
+                runAnalysis(queryFile, queryString, hdtDataSource, outputFile);
             }
             else if (Files.isDirectory(queryLocation))
             {
@@ -133,13 +136,20 @@ public class RunSymbolic
                         .filter(p -> p.toString().endsWith(".rq")).iterator();
                 while (filesPath.hasNext())
                 {
-                    queryString = new Scanner(filesPath.next())
-                            .useDelimiter("\\Z").next();
+                    Path nextQuery = filesPath.next();
+                    logger.info("Running analysis to query: "
+                            + nextQuery.toString());
+                    queryString = new Scanner(nextQuery).useDelimiter("\\Z")
+                            .next();
                     logger.info(queryString);
-                    runAnalysis(queryString, hdtDataSource, outputFile);
+                    runAnalysis(nextQuery.toString(), queryString,
+                            hdtDataSource, outputFile);
                 }
-            } else {
-                if(Files.notExists(queryLocation)) {
+            }
+            else
+            {
+                if (Files.notExists(queryLocation))
+                {
                     throw new FileNotFoundException("No query file");
                 }
             }
@@ -152,7 +162,7 @@ public class RunSymbolic
         }
     }
 
-    private static void runAnalysis(String queryString,
+    private static void runAnalysis(String queryFile, String queryString,
             HdtDataSource hdtDataSource, String outpuFile)
             throws IOException, CloneNotSupportedException
     {
@@ -161,102 +171,111 @@ public class RunSymbolic
         String construct = queryString.replaceFirst("SELECT.*WHERE",
                 "CONSTRUCT WHERE");
         Query constructQuery = QueryFactory.create(construct);
-        double tripSize = HdtDataSource.getTripSize(constructQuery);
-        // tripSize = 1000000000;
-        // delta parameter: use 1/n^2, with n = size of the data in the query
-        double DELTA = 1 / (Math.pow(tripSize, 2));
-        double beta = EPSILON / (2 * Math.log(2 / DELTA));
-
-        ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
-        List<Element> elementList = queryPattern.getElements();
-        double smoothSensitivity = 0.0;
-        Element element = elementList.get(0);
-        boolean starQuery = false;
-        if (element instanceof ElementPathBlock)
+        int tripSize = HdtDataSource.getTripSize(constructQuery);
+        if (tripSize > 10000)
         {
-            Expr elasticStability = Expr.valueOf(0);
 
-            int k = 1;
+            // tripSize = 1000000000;
+            // delta parameter: use 1/n^2, with n = size of the data in the
+            // query
+            double DELTA = 1 / (Math.pow(tripSize, 2));
+            double beta = EPSILON / (2 * Math.log(2 / DELTA));
 
-            Map<String, List<TriplePath>> starQueriesMap = Helper
-                    .getStarPatterns(q);
-
-            if (Helper.isStarQuery(q))
+            ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
+            List<Element> elementList = queryPattern.getElements();
+            double smoothSensitivity = 0.0;
+            Element element = elementList.get(0);
+            boolean starQuery = false;
+            if (element instanceof ElementPathBlock)
             {
-                starQuery = true;
-                elasticStability = x;
-                double sensitivity = k;
-                smoothSensitivity = GraphElasticSensitivity
-                        .smoothElasticSensitivity(elasticStability, sensitivity,
-                                beta, k);
-                logger.info("star query (smooth) sensitivity: "
-                        + smoothSensitivity);
+                Expr elasticStability = Expr.valueOf(0);
+
+                int k = 1;
+
+                Map<String, List<TriplePath>> starQueriesMap = Helper
+                        .getStarPatterns(q);
+
+                if (Helper.isStarQuery(q))
+                {
+                    starQuery = true;
+                    elasticStability = x;
+                    double sensitivity = k;
+                    smoothSensitivity = GraphElasticSensitivity
+                            .smoothElasticSensitivity(elasticStability,
+                                    sensitivity, beta, k, tripSize);
+                    logger.info("star query (smooth) sensitivity: "
+                            + smoothSensitivity);
+                }
+                else
+                {
+                    elasticStability = GraphElasticSensitivity
+                            .calculateElasticSensitivityAtK(k, starQueriesMap,
+                                    EPSILON, hdtDataSource);
+                    // elasticStability = GraphElasticSensitivity
+                    // .calculateElasticSensitivityAtK(k,
+                    // (ElementPathBlock) element, EPSILON);
+
+                    logger.info("Elastic Stability: " + elasticStability);
+                    smoothSensitivity = GraphElasticSensitivity
+                            .smoothElasticSensitivity(elasticStability, 0, beta,
+                                    k, tripSize);
+                    logger.info(
+                            "Path Smooth Sensitivity: " + smoothSensitivity);
+                }
+
+                // add noise using Laplace Probability Density Function
+                double scale = 2 * smoothSensitivity / EPSILON;
+                Random random = new Random();
+                double u = 0.5 - random.nextDouble();
+                // LaplaceDistribution l = new LaplaceDistribution(u, scale);
+                double noise = -Math.signum(u) * scale
+                        * Math.log(1 - 2 * Math.abs(u));
+
+                int countQueryResult = HdtDataSource
+                        .executeCountQuery(queryString);
+
+                double finalResult1 = countQueryResult + noise;
+                // double finalResult2 = countQueryResult + l.sample();
+
+                logger.info("Original result: " + countQueryResult);
+                logger.info("Noise added: " + Math.round(noise));
+                logger.info("Private Result: " + Math.round(finalResult1));
+
+                StringBuffer csvLine = new StringBuffer();
+                csvLine.append(queryFile);
+                csvLine.append(",");
+                csvLine.append(countQueryResult);
+                csvLine.append(",");
+                csvLine.append(finalResult1);
+                csvLine.append(",");
+                int queryTriples = ((ElementPathBlock) element).getPattern()
+                        .size();
+                csvLine.append(queryTriples);
+                csvLine.append(",");
+                if (starQuery)
+                {
+                    csvLine.append("starQuery");
+                }
+                else
+                {
+                    csvLine.append("NOstarQuery");
+                }
+                csvLine.append(",");
+                csvLine.append(EPSILON);
+                csvLine.append(",");
+                csvLine.append(scale);
+                csvLine.append(",");
+                csvLine.append(elasticStability);
+                csvLine.append(",");
+                csvLine.append(k);
+                csvLine.append(",");
+                csvLine.append(tripSize);
+                csvLine.append("\n");
+
+                Files.write(Paths.get(outpuFile), csvLine.toString().getBytes(),
+                        StandardOpenOption.APPEND);
+
             }
-            else
-            {
-                elasticStability = GraphElasticSensitivity
-                        .calculateElasticSensitivityAtK(k, starQueriesMap,
-                                EPSILON, hdtDataSource);
-                // elasticStability = GraphElasticSensitivity
-                // .calculateElasticSensitivityAtK(k,
-                // (ElementPathBlock) element, EPSILON);
-
-                logger.info("Elastic Stability: " + elasticStability);
-                smoothSensitivity = GraphElasticSensitivity
-                        .smoothElasticSensitivity(elasticStability, 0, beta, 0);
-                logger.info("Path Smooth Sensitivity: " + smoothSensitivity);
-            }
-
-            // add noise using Laplace Probability Density Function
-            double scale = 2 * smoothSensitivity / EPSILON;
-            Random random = new Random();
-            double u = 0.5 - random.nextDouble();
-            // LaplaceDistribution l = new LaplaceDistribution(u, scale);
-            double noise = -Math.signum(u) * scale
-                    * Math.log(1 - 2 * Math.abs(u));
-
-            int countQueryResult = HdtDataSource.executeCountQuery(queryString);
-
-            double finalResult1 = countQueryResult + noise;
-            // double finalResult2 = countQueryResult + l.sample();
-
-            logger.info("Original result: " + countQueryResult);
-            logger.info("Noise added: " + Math.round(noise));
-            logger.info("Private Result: " + Math.round(finalResult1));
-
-            StringBuffer csvLine = new StringBuffer();
-            csvLine.append(queryString.replaceAll("\n", " "));
-            csvLine.append(",");
-            csvLine.append(countQueryResult);
-            csvLine.append(",");
-            csvLine.append(finalResult1);
-            csvLine.append(",");
-            int queryTriples = ((ElementPathBlock) element).getPattern().size();
-            csvLine.append(queryTriples);
-            csvLine.append(",");
-            if (starQuery)
-            {
-                csvLine.append("starQuery");
-            }
-            else
-            {
-                csvLine.append("NOstarQuery");
-            }
-            csvLine.append(",");
-            csvLine.append(EPSILON);
-            csvLine.append(",");
-            csvLine.append(scale);
-            csvLine.append(",");
-            csvLine.append(elasticStability);
-            csvLine.append(",");
-            csvLine.append(k);
-            csvLine.append(",");
-            csvLine.append(tripSize);
-            csvLine.append("\n");
-
-            Files.write(Paths.get(outpuFile), csvLine.toString().getBytes(),
-                    StandardOpenOption.APPEND);
-
         }
     }
 
