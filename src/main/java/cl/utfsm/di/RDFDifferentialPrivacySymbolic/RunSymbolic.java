@@ -202,7 +202,7 @@ public class RunSymbolic
                     elasticStability = x;
                     double sensitivity = k;
                     smoothSensitivity = GraphElasticSensitivity
-                            .smoothElasticSensitivity(elasticStability,
+                            .smoothElasticSensitivityStar(elasticStability,
                                     sensitivity, beta, k, tripSize);
                     logger.info("star query (smooth) sensitivity: "
                             + smoothSensitivity);
@@ -225,12 +225,15 @@ public class RunSymbolic
                 }
 
                 // add noise using Laplace Probability Density Function
+//                2 * sensitivity / epsilon
                 double scale = 2 * smoothSensitivity / EPSILON;
                 SecureRandom random = new SecureRandom();
                 double u = 0.5 - random.nextDouble();
+//              val u = 0.5 - scala.util.Random.nextDouble()
                 // LaplaceDistribution l = new LaplaceDistribution(u, scale);
                 double noise = -Math.signum(u) * scale
                         * Math.log(1 - 2 * Math.abs(u));
+//                -math.signum(u) * scale * math.log(1 - 2*math.abs(u))
 
                 int countQueryResult = HdtDataSource
                         .executeCountQuery(queryString);

@@ -16,6 +16,8 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.sparql.core.TriplePath;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rdfhdt.hdt.hdt.HDT;
 import org.rdfhdt.hdt.hdt.HDTManager;
 import org.rdfhdt.hdtjena.HDTGraph;
@@ -23,6 +25,9 @@ import org.rdfhdt.hdtjena.NodeDictionary;
 
 public class HdtDataSource
 {
+
+    private static Logger logger = LogManager
+            .getLogger(HdtDataSource.class.getName());
 
     private static HDT datasource;
     private static NodeDictionary dictionary;
@@ -68,7 +73,8 @@ public class HdtDataSource
                 QuerySolution soln = results.nextSolution();
                 RDFNode x = soln.get("count");
                 int res = x.asLiteral().getInt();
-                System.out.println("max freq value: " + res);
+                logger.info("max freq value: " + res + " for variable "
+                        + variableName);
                 return res;
             }
             else

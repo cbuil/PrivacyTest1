@@ -416,7 +416,7 @@ public class GraphElasticSensitivity
             double DELTA = 1 / (Math.pow(tripSize, 2));
             double beta = EPSILON / (2 * Math.log(2 / DELTA));
 
-            smoothSensitivityLeft = smoothElasticSensitivity(
+            smoothSensitivityLeft = smoothElasticSensitivityStar(
                     elasticStabilityLeft, sensitivity, beta, k, tripSize);
             logger.info("star query (smooth) sensitivity: "
                     + smoothSensitivityLeft);
@@ -442,7 +442,7 @@ public class GraphElasticSensitivity
                 double smoothSensitivityPrime = 0.0;
                 elasticStabilityPrime = x;
                 sensitivity = k;
-                smoothSensitivityPrime = smoothElasticSensitivity(
+                smoothSensitivityPrime = smoothElasticSensitivityStar(
                         elasticStabilityPrime, sensitivity, beta, k, tripSize);
                 logger.info("star query prime (smooth) sensitivity: "
                         + smoothSensitivityPrime);
@@ -501,30 +501,31 @@ public class GraphElasticSensitivity
 
     }
 
-    // TODO: change this to a while and add as limit the size of the query
     public static double smoothElasticSensitivity(Expr elasticSensitivity,
             double prevSensitivity, double beta, int k, int tripSize)
     {
-        // Func f1 = new Func("f1", elasticSensitivity);
-        // BytecodeFunc func1 = f1.toBytecodeFunc();
-        //
-        // double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
-        //
-        // if (smoothSensitivity == 0 || (smoothSensitivity < prevSensitivity))
-        // {
-        // return prevSensitivity;
-        // }
-        // else
-        // {
-        // return smoothElasticSensitivity(elasticSensitivity,
-        // smoothSensitivity, beta, k + 1, tripSize);
-        // }
-
         for (int i = 0; i < tripSize; i++)
         {
             Func f1 = new Func("f1", elasticSensitivity);
             BytecodeFunc func1 = f1.toBytecodeFunc();
             double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
+            if (smoothSensitivity > prevSensitivity)
+            {
+                prevSensitivity = smoothSensitivity;
+            }
+            k++;
+        }
+        return prevSensitivity;
+    }
+    
+    public static double smoothElasticSensitivityStar(Expr elasticSensitivity,
+            double prevSensitivity, double beta, int k, int tripSize)
+    {
+        for (int i = 0; i < tripSize; i++)
+        {
+            Func f1 = new Func("f1", elasticSensitivity);
+            BytecodeFunc func1 = f1.toBytecodeFunc();
+            double smoothSensitivity = Math.exp(-k * beta) * 1;
             if (smoothSensitivity > prevSensitivity)
             {
                 prevSensitivity = smoothSensitivity;
