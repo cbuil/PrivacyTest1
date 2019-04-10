@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -225,7 +226,7 @@ public class RunSymbolic
 
                 // add noise using Laplace Probability Density Function
                 double scale = 2 * smoothSensitivity / EPSILON;
-                Random random = new Random();
+                SecureRandom random = new SecureRandom();
                 double u = 0.5 - random.nextDouble();
                 // LaplaceDistribution l = new LaplaceDistribution(u, scale);
                 double noise = -Math.signum(u) * scale
