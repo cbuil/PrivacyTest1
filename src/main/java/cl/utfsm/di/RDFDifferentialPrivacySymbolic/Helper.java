@@ -84,6 +84,9 @@ public class Helper
         return starMap;
     }
 
+    /*
+    checks for a star query of the form ?s a ?p1 . ?s b ?p2
+     */
     public static boolean isStarQuery(Query query)
     {
         List<Element> elements = ((ElementGroup) query.getQueryPattern())
