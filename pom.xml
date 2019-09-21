@@ -34,15 +34,9 @@
 				<version>1.6.0</version>
 				<executions>
 					<execution>
-						<id>run-dp</id>
-						<configuration>
-							<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
-						</configuration>
-					</execution>
-					<execution>
                         <id>run-evaluation</id>
                         <configuration>
-                            <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunEvaluation</mainClass>
+                            <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
                         </configuration>
                     </execution>
 					<!-- <execution> <id>run-dp-dir</id> <configuration> <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunDirectory</mainClass> 
@@ -54,9 +48,6 @@
 						</configuration>
 					</execution>
 				</executions>
-				<configuration>
-					<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunEvaluation</mainClass>
-				</configuration>
 			</plugin>
 		</plugins>
 

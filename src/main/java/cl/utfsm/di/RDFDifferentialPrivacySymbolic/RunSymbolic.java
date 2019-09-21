@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -42,7 +43,7 @@ public class RunSymbolic {
     private static double EPSILON = 0.1;
 
     public static void main(String[] args)
-            throws IOException, CloneNotSupportedException {
+            throws IOException, CloneNotSupportedException, ExecutionException {
 
         // create Options object
         Options options = new Options();
@@ -114,6 +115,8 @@ public class RunSymbolic {
             } else if (Files.isDirectory(queryLocation)) {
                 Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
                         .filter(p -> p.toString().endsWith(".rq")).iterator();
+                logger.info("Running analysis to DIRECTORY: "
+                        + queryLocation);
                 while (filesPath.hasNext()) {
                     Path nextQuery = filesPath.next();
                     logger.info("Running analysis to query: "
@@ -123,6 +126,7 @@ public class RunSymbolic {
                     logger.info(queryString);
                     runAnalysis(nextQuery.toString(), queryString,
                             hdtDataSource, outputFile, evaluation);
+                    logger.info("Cache stats: " + HdtDataSource.mostPopularValueCache.stats());
                 }
             } else {
                 if (Files.notExists(queryLocation)) {
@@ -137,17 +141,17 @@ public class RunSymbolic {
 
     private static void runAnalysis(String queryFile, String queryString,
                                     HdtDataSource hdtDataSource, String outpuFile, boolean evaluation)
-            throws IOException, CloneNotSupportedException {
+            throws IOException, CloneNotSupportedException, ExecutionException {
         Query q = QueryFactory.create(queryString);
 
         String construct = queryString.replaceFirst("SELECT.*WHERE",
                 "CONSTRUCT WHERE");
         Query constructQuery = QueryFactory.create(construct);
-        int tripSize = HdtDataSource.getTripSize(constructQuery);
+        int graphSize = HdtDataSource.graphSizeCache.get(constructQuery);
         // tripSize = 1000000000;
         // delta parameter: use 1/n^2, with n = size of the data in the
         // query
-        double DELTA = 1 / (Math.pow(tripSize, 2));
+        double DELTA = 1 / (Math.pow(graphSize, 2));
         double beta = EPSILON / (2 * Math.log(2 / DELTA));
 
         ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
@@ -169,7 +173,7 @@ public class RunSymbolic {
                 double sensitivity = k;
                 smoothSensitivity = GraphElasticSensitivity
                         .smoothElasticSensitivityStar(elasticStability,
-                                sensitivity, beta, k, tripSize);
+                                sensitivity, beta, k, graphSize);
                 logger.info("star query (smooth) sensitivity: "
                         + smoothSensitivity);
             } else {
@@ -183,7 +187,7 @@ public class RunSymbolic {
                 logger.info("Elastic Stability: " + elasticStability);
                 smoothSensitivity = GraphElasticSensitivity
                         .smoothElasticSensitivity(elasticStability, 0, beta,
-                                k, tripSize);
+                                k, graphSize);
                 logger.info(
                         "Path Smooth Sensitivity: " + smoothSensitivity);
             }
@@ -240,7 +244,7 @@ public class RunSymbolic {
                 csvLine.append(",");
                 csvLine.append(k);
                 csvLine.append(",");
-                csvLine.append(tripSize);
+                csvLine.append(graphSize);
                 csvLine.append("\n");
 
                 Files.write(Paths.get(outpuFile), csvLine.toString().getBytes(),

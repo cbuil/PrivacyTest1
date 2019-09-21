@@ -2,7 +2,6 @@ package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -19,7 +18,6 @@ import org.apache.jena.query.ResultSetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.sparql.core.TriplePath;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rdfhdt.hdt.hdt.HDT;
@@ -36,31 +34,13 @@ public class HdtDataSource {
     private static NodeDictionary dictionary;
     private static HDTGraph graph;
     private static Model triples;
-    private LoadingCache<QueryVariableCount, Integer> countResults;
-
-    public class QueryVariableCount {
-        private String query;
-        private String variable;
-
-        public int getQuerySize(){
-            return query.length();
-        }
-
-        public String getQueryString(){
-            return query;
-        }
-
-        public String getVariableString(){
-            return variable;
-        }
-
-        // standard getters and setters
-    }
+    public static LoadingCache<MaxFreqQuery, Integer> mostPopularValueCache;
+    public static LoadingCache<Query, Integer> graphSizeCache;
 
     /**
      * Creates a new HdtDataSource.
      *
-     * @param hdtFile     the HDT datafile
+     * @param hdtFile the HDT datafile
      * @throws IOException if the file cannot be loaded
      */
     public HdtDataSource(String hdtFile) throws IOException {
@@ -68,24 +48,39 @@ public class HdtDataSource {
         dictionary = new NodeDictionary(datasource.getDictionary());
         graph = new HDTGraph(datasource);
         triples = ModelFactory.createModelForGraph(graph);
-        countResults = CacheBuilder.newBuilder()
+        mostPopularValueCache = CacheBuilder.newBuilder().recordStats()
                 .maximumWeight(100000)
-                .weigher(new Weigher<QueryVariableCount, Integer>() {
-                    public int weigh(QueryVariableCount k, Integer resultSize) {
+                .weigher(new Weigher<MaxFreqQuery, Integer>() {
+                    public int weigh(MaxFreqQuery k, Integer resultSize) {
                         return k.getQuerySize();
                     }
                 })
                 .build(
-                        new CacheLoader<QueryVariableCount, Integer>() {
+                        new CacheLoader<MaxFreqQuery, Integer>() {
                             @Override
-                            public Integer load(QueryVariableCount s) throws Exception {
-                                return getCountResults(s.getQueryString(), s.getVariableString());
+                            public Integer load(MaxFreqQuery s) throws Exception {
+                                logger.info("into mostPopularValueCache CacheLoader, loading: " + s.toString());
+                                return getCountResults(s.getQuery(), s.getVariableString());
                             }
                         });
-
+        graphSizeCache = CacheBuilder.newBuilder().recordStats()
+                .maximumWeight(1000)
+                .weigher(new Weigher<Query, Integer>() {
+                    public int weigh(Query k, Integer resultSize) {
+                        return k.toString().length();
+                    }
+                })
+                .build(
+                        new CacheLoader<Query, Integer>() {
+                            @Override
+                            public Integer load(Query q) throws Exception {
+                                logger.info("into graphSizeCache CacheLoader, loading: " + q.toString());
+                                return getGraphSize(q);
+                            }
+                        });
     }
 
-    public static int getCountResults(String starQuery, String variableName) {
+    private static int getCountResults(String starQuery, String variableName) {
 
         variableName = variableName.replace("“", "").replace("”", "");
         String maxFreqQueryString = "select (count(?" + variableName
@@ -110,35 +105,6 @@ public class HdtDataSource {
         }
     }
 
-    public static int getCountResults(TriplePath triplePath,
-                                      String variableName) {
-        List<String> aux = Helper.triplePartExtractor(triplePath);
-        String subject = aux.get(0);
-        String pred = aux.get(1);
-        String object = aux.get(2);
-
-        variableName = variableName.replace("“", "").replace("”", "");
-        String maxFreqQueryString = "select (count(" + variableName
-                + ") as ?count) where { " + subject + " " + pred + " " + object
-                + " " + "} GROUP BY " + variableName + " " + "ORDER BY "
-                + variableName + " DESC (?count) LIMIT 1 ";
-
-        Query query = QueryFactory.create(maxFreqQueryString);
-        try (QueryExecution qexec = QueryExecutionFactory.create(query,
-                triples)) {
-            ResultSet results = qexec.execSelect();
-            if (results.hasNext()) {
-                QuerySolution soln = results.nextSolution();
-                RDFNode x = soln.get("count");
-                int res = x.asLiteral().getInt();
-                System.out.println("max freq value: " + res);
-                return res;
-            } else {
-                return 0;
-            }
-        }
-    }
-
     public static ResultSet excecuteQuery(Query query) {
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples)) {
@@ -148,7 +114,7 @@ public class HdtDataSource {
         }
     }
 
-    public static int getTripSize(Query query) {
+    private static int getGraphSize(Query query) {
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples)) {
             Iterator<Triple> results = qexec.execConstructTriples();
