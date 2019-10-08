@@ -1,7 +1,5 @@
 package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
-import org.apache.jena.sparql.core.TriplePath;
-
 public class MaxFreqQuery {
     private String query;
     private String variable;

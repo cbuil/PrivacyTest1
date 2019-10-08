@@ -1,9 +1,10 @@
 package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
+import static symjava.symbolic.Symbol.x;
+
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -11,17 +12,13 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
-import org.apache.jena.sparql.core.PathBlock;
 import org.apache.jena.sparql.core.TriplePath;
-import org.apache.jena.sparql.syntax.ElementPathBlock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import cl.utfsm.di.RDFDifferentialPrivacySymbolic.HdtDataSource;
 import symjava.bytecode.BytecodeFunc;
 import symjava.symbolic.Expr;
 import symjava.symbolic.Func;
-import static symjava.symbolic.Symbol.x;
 
 public class GraphElasticSensitivity
 {

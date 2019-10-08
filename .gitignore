@@ -178,7 +178,6 @@ fabric.properties
 *.nar
 *.ear
 *.zip
-*.tar.gz
 *.rar
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
@@ -198,3 +197,5 @@ buildNumber.properties
 .flattened-pom.xml
 
 # End of https://www.gitignore.io/api/java,maven,eclipse,intellij
+/resources/watdiv.100M.nt.hdt
+/resources/watdiv.100M.nt.hdt.index.v1-1

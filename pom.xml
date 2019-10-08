@@ -34,11 +34,11 @@
 				<version>1.6.0</version>
 				<executions>
 					<execution>
-                        <id>run-evaluation</id>
-                        <configuration>
-                            <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
-                        </configuration>
-                    </execution>
+						<id>run-evaluation</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
+						</configuration>
+					</execution>
 					<!-- <execution> <id>run-dp-dir</id> <configuration> <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunDirectory</mainClass> 
 						</configuration> </execution> -->
 					<execution>
@@ -54,6 +54,14 @@
 		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
 	</build>
 	<dependencies>
+
+		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.6</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-arq</artifactId>

@@ -16,6 +16,8 @@ public class StarQuery
     // the smoothed sensitivity of the star query
     private double querySentitivity;
 
+    private int keyCardinality;
+
     // elastic stability is the formula by which we calculate the sensitivity,
     // only appears when there are more than two star queries
     private Expr elasticStability;

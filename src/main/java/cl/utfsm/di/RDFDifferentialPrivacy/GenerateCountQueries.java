@@ -3,8 +3,10 @@ package cl.utfsm.di.RDFDifferentialPrivacy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -22,14 +24,18 @@ import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.syntax.Element;
 import org.apache.jena.sparql.syntax.ElementGroup;
 import org.apache.jena.sparql.syntax.ElementPathBlock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class GenerateCountQueries
 {
+    
+    private static Logger logger = LogManager
+            .getLogger(GenerateCountQueries.class.getName());
 
     public static void main(String[] args)
             throws IOException, CloneNotSupportedException, ParseException
     {
-        ArrayList<LinkedList<Triple>> relatedTriplesList = new ArrayList<LinkedList<Triple>>();
         // create Options object
         Options options = new Options();
 
@@ -47,150 +53,47 @@ public class GenerateCountQueries
             if (cmd.hasOption("f"))
             {
                 queryFile = cmd.getOptionValue("f");
-                File queryFileSystem = new File(queryFile);
-                outputDir = queryFileSystem.getParent() + "/output/";
-                queryString = new Scanner(queryFileSystem)
-                        .useDelimiter("\\Z").next();
-                queryFile = queryFileSystem.getName();
 
                 // transform into Jena Query object
             }
             else
             {
-                System.out.println("Missing SPARQL query file");
+                logger.info("Missing SPARQL query file");
             }
 
             if (cmd.hasOption("o"))
             {
-//                outputDir = cmd.getOptionValue("o");
+                outputDir = cmd.getOptionValue("o");
             }
             else
             {
-                System.out.println("Missing query directory");
+                logger.info("Missing query directory");
             }
 
-            Query q = QueryFactory.create(queryString);
-            ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
-            List<Element> elementList = queryPattern.getElements();
-            LinkedList<Triple> triplesAdjList;
-
-            for (Element element : elementList)
+            Path queryLocation = Paths.get(queryFile);
+            if (Files.isRegularFile(queryLocation))
             {
-                if (element instanceof ElementPathBlock)
-                {
-                    ElementPathBlock triplesBlock = (ElementPathBlock) element;
-                    for (TriplePath triplePath : triplesBlock.getPattern())
-                    {
-                        Triple triple = triplePath.asTriple();
-                        if (relatedTriplesList.isEmpty())
-                        {
-                            triplesAdjList = new LinkedList<Triple>();
-                            triplesAdjList.add(triple);
-                            relatedTriplesList.add(triplesAdjList);
-                        }
-                        else
-                        {
-                            boolean isIn = false;
-                            for (LinkedList<Triple> tripleList : relatedTriplesList)
-                            {
-                                if (varsIn(tripleList.element(), triple))
-                                {
-                                    tripleList.add(triple);
-                                    isIn = true;
-                                    break;
-                                }
-                            }
-                            if (!isIn)
-                            {
-                                triplesAdjList = new LinkedList<Triple>();
-                                triplesAdjList.add(triple);
-                                relatedTriplesList.add(triplesAdjList);
-                            }
-                        }
-                    }
-                }
+                queryString = new Scanner(new File(queryFile))
+                        .useDelimiter("\\Z").next();
             }
-
-            int i = 0;
-            while (i + 1 < relatedTriplesList.size())
+            else if (Files.isDirectory(queryLocation))
             {
-                LinkedList<Triple> tripleList = relatedTriplesList.get(i);
-                int j = 0;
-                while (j < tripleList.size())
-                // for (Triple triple : tripleList)
+                Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
+                        .filter(p -> p.toString().endsWith(".rq")).iterator();
+                while (filesPath.hasNext())
                 {
-                    Triple triple = tripleList.getFirst();
-                    tripleList.removeFirst();
-                    if (i + 1 < relatedTriplesList.size())
-                    {
-                        if (findTriple(triple, relatedTriplesList.get(i + 1)))
-                        {
-                            tripleList.add(triple);
-                            break;
-                        }
-                        else
-                        {
-                            tripleList.add(triple);
-                        }
-                    }
-                    j++;
+                    Path nextQuery = filesPath.next();
+                    queryString = new Scanner(nextQuery).useDelimiter("\\Z")
+                            .next();
+                    logger.info("Next query path: " + nextQuery.toString());
+                    runQueryGeneration(queryString, outputDir, nextQuery.toString());
                 }
-                i++;
-                System.out.println("--------------------");
-            }
-
-            for (Var var : q.getProjectVars())
-            {
-                String varStr = var.getName();
-                StringBuffer newQueryString = new StringBuffer("SELECT (COUNT(?"
-                        + varStr + ") as " + "?count_" + varStr + ") WHERE {\n");
-                for (LinkedList<Triple> tripleList : relatedTriplesList)
-                {
-                    for (Triple triple : tripleList)
-                    {
-                        String subject;
-                        String predicate;
-                        String object;
-                        if (triple.getSubject().isURI())
-                        {
-                            subject = "<" + triple.getSubject() + ">";
-                        }
-                        else
-                        {
-                            subject = triple.getSubject().toString();
-                        }
-                        if (triple.getPredicate().isURI())
-                        {
-                            predicate = "<" + triple.getPredicate() + ">";
-                        }
-                        else
-                        {
-                            predicate = triple.getPredicate().toString();
-                        }
-                        if (triple.getObject().isURI())
-                        {
-                            object = "<" + triple.getObject() + ">";
-                        }
-                        else
-                        {
-                            object = triple.getObject().toString();
-                        }
-                        newQueryString.append(subject + " " + predicate + " "
-                                + object + " .\n");
-                    }
-                }
-                newQueryString.append("}");
-                Files.write(
-                        Paths.get(outputDir + queryFile.replaceAll(".rq", "")
-                                + "." + var.getName() + ".rq"),
-                        newQueryString.toString().getBytes());
-                System.out.println(newQueryString.toString());
             }
 
         }
         catch (Exception e)
         {
-            System.out.print(e.getCause());
+            System.out.print(e);
         }
 
     }
@@ -245,5 +148,127 @@ public class GenerateCountQueries
             }
         }
         return false;
+    }
+
+    private static void runQueryGeneration(String queryString, String outputDir,
+            String queryFile) throws IOException
+    {
+        ArrayList<LinkedList<Triple>> relatedTriplesList = new ArrayList<LinkedList<Triple>>();
+        Query q = QueryFactory.create(queryString);
+        ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
+        List<Element> elementList = queryPattern.getElements();
+        LinkedList<Triple> triplesAdjList;
+
+        for (Element element : elementList)
+        {
+            if (element instanceof ElementPathBlock)
+            {
+                ElementPathBlock triplesBlock = (ElementPathBlock) element;
+                for (TriplePath triplePath : triplesBlock.getPattern())
+                {
+                    Triple triple = triplePath.asTriple();
+                    if (relatedTriplesList.isEmpty())
+                    {
+                        triplesAdjList = new LinkedList<Triple>();
+                        triplesAdjList.add(triple);
+                        relatedTriplesList.add(triplesAdjList);
+                    }
+                    else
+                    {
+                        boolean isIn = false;
+                        for (LinkedList<Triple> tripleList : relatedTriplesList)
+                        {
+                            if (varsIn(tripleList.element(), triple))
+                            {
+                                tripleList.add(triple);
+                                isIn = true;
+                                break;
+                            }
+                        }
+                        if (!isIn)
+                        {
+                            triplesAdjList = new LinkedList<Triple>();
+                            triplesAdjList.add(triple);
+                            relatedTriplesList.add(triplesAdjList);
+                        }
+                    }
+                }
+            }
+        }
+
+        int i = 0;
+        while (i + 1 < relatedTriplesList.size())
+        {
+            LinkedList<Triple> tripleList = relatedTriplesList.get(i);
+            int j = 0;
+            while (j < tripleList.size())
+            // for (Triple triple : tripleList)
+            {
+                Triple triple = tripleList.getFirst();
+                tripleList.removeFirst();
+                if (i + 1 < relatedTriplesList.size())
+                {
+                    if (findTriple(triple, relatedTriplesList.get(i + 1)))
+                    {
+                        tripleList.add(triple);
+                        break;
+                    }
+                    else
+                    {
+                        tripleList.add(triple);
+                    }
+                }
+                j++;
+            }
+            i++;
+        }
+
+        for (Var var : q.getProjectVars())
+        {
+            String varStr = var.getName();
+            StringBuffer newQueryString = new StringBuffer("SELECT (COUNT(?"
+                    + varStr + ") as " + "?count_" + varStr + ") WHERE {\n");
+            for (LinkedList<Triple> tripleList : relatedTriplesList)
+            {
+                for (Triple triple : tripleList)
+                {
+                    String subject;
+                    String predicate;
+                    String object;
+                    if (triple.getSubject().isURI())
+                    {
+                        subject = "<" + triple.getSubject() + ">";
+                    }
+                    else
+                    {
+                        subject = triple.getSubject().toString();
+                    }
+                    if (triple.getPredicate().isURI())
+                    {
+                        predicate = "<" + triple.getPredicate() + ">";
+                    }
+                    else
+                    {
+                        predicate = triple.getPredicate().toString();
+                    }
+                    if (triple.getObject().isURI())
+                    {
+                        object = "<" + triple.getObject() + ">";
+                    }
+                    else
+                    {
+                        object = triple.getObject().toString();
+                    }
+                    newQueryString.append(
+                            subject + " " + predicate + " " + object + " .\n");
+                }
+            }
+            newQueryString.append("}");
+            Files.write(
+                    Paths.get(outputDir + queryFile.replaceAll(".rq", "") + "."
+                            + var.getName() + ".rq"),
+                    newQueryString.toString().getBytes());
+            logger.info(newQueryString.toString());
+        }
     }
 }

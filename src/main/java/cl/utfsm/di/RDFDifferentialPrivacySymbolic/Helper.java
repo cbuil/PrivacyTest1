@@ -12,18 +12,6 @@ import java.util.*;
 
 public class Helper
 {
-    // private static String queryCreator(List<String> triples, String
-    // queryHead)
-    // {
-    // String finalQuery = queryHead + "{";
-    // Iterator<String> Iterator = triples.iterator();
-    // while (Iterator.hasNext())
-    // {
-    // finalQuery = finalQuery + Iterator.next() + ".\n ";
-    // }
-    // finalQuery = finalQuery + "}";
-    // return finalQuery;
-    // }
 
     public static List<String> getJoinVariables(List<TriplePath> starQueryLeft,
             List<TriplePath> starQueryRight)
