@@ -320,7 +320,7 @@ public class RunSymbolic
                 // csvLine.toString().getBytes(),
                 // StandardOpenOption.APPEND);
             }
-            Result result = new Result(EPSILON, resultList, k, countQueryResult,
+            Result result = new Result(queryFile, EPSILON, resultList, k, countQueryResult,
                     graphSize, scale, elasticStability, graphSize, starQuery,
                     maxFreqMap);
 

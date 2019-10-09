@@ -10,6 +10,7 @@ import com.google.gson.GsonBuilder;
 
 public class Result
 {
+    public String query;
     public double epsilon;
     public List<Double> privateResult;
     public int k;
@@ -21,10 +22,11 @@ public class Result
     public int graphSize;
     public boolean starQuery;
 
-    public Result(double epsilon, List<Double> resultList, int k, int result2,
+    public Result(String query, double epsilon, List<Double> resultList, int k, int result2,
             int queryTriples, double scale, Expr elasticStability2,
             int graphSize, boolean starQuery, Map<String, Integer> maxFreqMap)
     {
+        this.query = query;
         this.epsilon = epsilon;
         this.privateResult = resultList;
         this.k = k;
