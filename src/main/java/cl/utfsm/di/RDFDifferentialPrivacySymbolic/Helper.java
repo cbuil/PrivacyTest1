@@ -67,6 +67,22 @@ public class Helper
                     starMap.put(tripleInQuery.getSubject().getName(),
                             tripleList);
                 }
+            } else if(tripleInQuery.getSubject().isURI()) {
+                if (!starMap.containsKey(tripleInQuery.getSubject().getURI()))
+                {
+                    tripleList = new ArrayList<TriplePath>();
+                    tripleList.add(tripleInQuery);
+                    starMap.put(tripleInQuery.getSubject().getURI(),
+                            tripleList);
+                }
+                else
+                {
+                    tripleList = starMap
+                            .get(tripleInQuery.getSubject().getURI());
+                    tripleList.add(tripleInQuery);
+                    starMap.put(tripleInQuery.getSubject().getURI(),
+                            tripleList);
+                }
             }
         }
         return starMap;

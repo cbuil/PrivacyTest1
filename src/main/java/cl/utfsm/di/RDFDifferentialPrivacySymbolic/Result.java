@@ -2,6 +2,7 @@ package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
 import symjava.symbolic.Expr;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,30 +14,32 @@ public class Result
     public String query;
     public double epsilon;
     public List<Double> privateResult;
-    public int k;
-    public int result;
-    public Map<String, Integer> tripleSelectivity;
-    public int queryTriples;
+    public double sensitivity;
+    public List<Integer> result;
+    public Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
+    public Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
+    public int maxK;
     public double scale;
-    public Expr elasticStability;
-    public int graphSize;
+    public String elasticStability;
+    public long graphSize;
     public boolean starQuery;
 
-    public Result(String query, double epsilon, List<Double> resultList, int k, int result2,
-            int queryTriples, double scale, Expr elasticStability2,
-            int graphSize, boolean starQuery, Map<String, Integer> maxFreqMap)
+    public Result(String query, double epsilon, List<Double> resultList, double sensitivity, List<Integer>  result,
+            int maxK, double scale, Expr elasticStability,
+            long graphSize, boolean starQuery, Map<String, List<Integer>> mapMostFreqValue, Map<String, List<StarQuery>> mapMostFreqValueStar)
     {
         this.query = query;
         this.epsilon = epsilon;
         this.privateResult = resultList;
-        this.k = k;
-        this.result = result2;
-        this.queryTriples = queryTriples;
+        this.sensitivity = sensitivity;
+        this.result = result;
+        this.maxK = maxK;
         this.scale = scale;
-        this.elasticStability = elasticStability2;
+        this.elasticStability = elasticStability.toString();
         this.graphSize = graphSize;
         this.starQuery = starQuery;
-        this.tripleSelectivity = maxFreqMap;
+        this.mapMostFreqValue = mapMostFreqValue;
+        this.mapMostFreqValueStar = mapMostFreqValueStar;
     }
 
     public String toString()

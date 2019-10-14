@@ -47,6 +47,12 @@
 							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.GenerateCountQueries</mainClass>
 						</configuration>
 					</execution>
+					<execution>
+                        <id>run-query</id>
+                        <configuration>
+                            <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunQuery</mainClass>
+                        </configuration>
+                    </execution>
 				</executions>
 			</plugin>
 		</plugins>

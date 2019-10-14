@@ -13,6 +13,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -66,6 +67,7 @@ public class RunSymbolic
         String queryDir = "";
         String dataFile = "";
         String outputFile = "";
+        String endpoint = "";
         boolean evaluation = false;
 
         CommandLineParser parser = new DefaultParser();
@@ -101,11 +103,11 @@ public class RunSymbolic
             }
             if (cmd.hasOption("e"))
             {
-                queryDir = cmd.getOptionValue("e");
+                endpoint = cmd.getOptionValue("e");
             }
             else
             {
-                logger.info("Missing query directory");
+                logger.info("Missing endpoint address");
             }
             if (cmd.hasOption("o"))
             {
@@ -141,7 +143,7 @@ public class RunSymbolic
                         .useDelimiter("\\Z").next();
                 logger.info(queryString);
                 runAnalysis(queryFile, queryString, hdtDataSource, outputFile,
-                        evaluation);
+                        evaluation, endpoint);
             }
             else if (Files.isDirectory(queryLocation))
             {
@@ -157,9 +159,9 @@ public class RunSymbolic
                             .next();
                     logger.info(queryString);
                     runAnalysis(nextQuery.toString(), queryString,
-                            hdtDataSource, outputFile, evaluation);
+                            hdtDataSource, outputFile, evaluation, endpoint);
                     logger.info("Cache stats: "
-                            + HdtDataSource.mostPopularValueCache.stats());
+                            + HdtDataSource.mostFrequenResultCache.stats());
                 }
             }
             else
@@ -178,23 +180,19 @@ public class RunSymbolic
     }
 
     private static void runAnalysis(String queryFile, String queryString,
-            HdtDataSource hdtDataSource, String outpuFile, boolean evaluation)
+            HdtDataSource hdtDataSource, String outpuFile, boolean evaluation,
+            String endpoint)
             throws IOException, CloneNotSupportedException, ExecutionException
     {
+        int countQueryResult = HdtDataSource.executeCountQuery(queryString,
+                endpoint);
         Query q = QueryFactory.create(queryString);
 
-        String construct = queryString.replaceFirst("SELECT.*WHERE",
-                "CONSTRUCT WHERE");
-        Query constructQuery = QueryFactory.create(construct);
-        int graphSize = HdtDataSource.graphSizeCache.get(constructQuery);
-        // delta parameter: use 1/n^2, with n = size of the data in the
-        // query
-        double DELTA = 1 / (Math.pow(graphSize, 2));
-        double beta = EPSILON / (2 * Math.log(2 / DELTA));
+        List<List<String>> triplePatterns = new ArrayList();
 
         ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
         List<Element> elementList = queryPattern.getElements();
-        double smoothSensitivity = 0.0;
+        Sensitivity smoothSensitivity = null;
         Element element = elementList.get(0);
         boolean starQuery = false;
         if (element instanceof ElementPathBlock)
@@ -205,21 +203,112 @@ public class RunSymbolic
 
             Map<String, List<TriplePath>> starQueriesMap = Helper
                     .getStarPatterns(q);
-            Map<String, Integer> maxFreqMap = new HashMap<>();
+            Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
+            Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
             for (String key : starQueriesMap.keySet())
             {
-                int maxFreq = 0;
-                maxFreq = HdtDataSource.mostPopularValueCache
-                        .get(new MaxFreqQuery(Helper.getStarQueryString(
-                                starQueriesMap.get(key)), key));
-                maxFreqMap.put(key, maxFreq);
-            }
+                List<String> listTriple = new ArrayList();
+                List<TriplePath> starQueryLeft = starQueriesMap.get(key);
+                List<String> varStrings = new ArrayList<>();
+                int i = 0;
+                for (TriplePath triplePath : starQueryLeft)
+                {
+                    String triple = "";
+                    if (triplePath.getSubject().isVariable())
+                    {
+                        varStrings.add(triplePath.getSubject().getName());
+                        triple += "?" + triplePath.getSubject().getName();
+                    }
+                    else
+                    {
+                        triple += " ?s" + i + " ";
+                    }
+                    triple += "<" + triplePath.getPredicate().getURI() + "> ";
+                    if (triplePath.getObject().isVariable())
+                    {
+                        varStrings.add(triplePath.getObject().getName());
+                        triple += "?" + triplePath.getObject().getName();
+                    }
+                    else
+                    {
+                        triple += " ?o" + i + " ";
+                    }
+                    i++;
+                    listTriple.add(triple);
+                }
 
+                triplePatterns.add(listTriple);
+
+                Set<String> listWithoutDuplicates = new LinkedHashSet<String>(
+                        varStrings);
+                varStrings.clear();
+
+                varStrings.addAll(listWithoutDuplicates);
+
+                for (String var : varStrings)
+                {
+                    MaxFreqQuery query = new MaxFreqQuery(
+                            Helper.getStarQueryString(starQueryLeft), var);
+                    if (mapMostFreqValue.containsKey(var))
+                    {
+                        List<Integer> mostFreqValues = mapMostFreqValue
+                                .get(var);
+                        List<StarQuery> mostFreqValuesStar = mapMostFreqValueStar
+                                .get(var);
+                        if (!mostFreqValues.isEmpty())
+                        {
+                            mostFreqValues
+                                    .add(HdtDataSource.mostFrequenResultCache
+                                            .get(query));
+                            mapMostFreqValue.put(var, mostFreqValues);
+
+                            mostFreqValuesStar
+                                    .add(new StarQuery(starQueryLeft));
+                            mapMostFreqValueStar.put(var, mostFreqValuesStar);
+                        }
+                    }
+                    else
+                    {
+                        List<Integer> mostFreqValues = new ArrayList<>();
+                        mostFreqValues.add(HdtDataSource.mostFrequenResultCache
+                                .get(query));
+                        mapMostFreqValue.put(var, mostFreqValues);
+                        List<StarQuery> mostFreqValuesStar = new ArrayList<>();
+                        mostFreqValuesStar.add(new StarQuery(starQueryLeft));
+                        mapMostFreqValueStar.put(var, mostFreqValuesStar);
+                    }
+                }
+            }
+            logger.info(triplePatterns);
+            Map<String, Integer> maxFreqMap = new HashMap<>();
+            // for (String key : starQueriesMap.keySet())
+            // {
+            // int maxFreq = 0;
+            // maxFreq = HdtDataSource.mostFrequenResultCache
+            // .get(new MaxFreqQuery(Helper.getStarQueryString(
+            // starQueriesMap.get(key)), key));
+            // maxFreqMap.put(key, maxFreq);
+            // }
+
+            String construct = queryString.replaceFirst("SELECT.*WHERE",
+                    "CONSTRUCT WHERE");
+            logger.info("graph query: " + construct);
+            Query constructQuery = QueryFactory.create(construct);
+            long graphSize = HdtDataSource.graphSizeCache.get(constructQuery);
+
+            graphSize = HdtDataSource.getGraphSizeTriples(triplePatterns,
+                    endpoint);
+            logger.info("graph size " + graphSize);
+            // delta parameter: use 1/n^2, with n = size of the data in the
+            // query
+            double DELTA = 1 / (Math.pow(graphSize, 2));
+            double beta = EPSILON / (2 * Math.log(2 / DELTA));
             if (Helper.isStarQuery(q))
             {
                 starQuery = true;
                 elasticStability = x;
-                double sensitivity = k;
+                Sensitivity sensitivity = new Sensitivity(1.0,
+                        elasticStability);
                 smoothSensitivity = GraphElasticSensitivity
                         .smoothElasticSensitivityStar(elasticStability,
                                 sensitivity, beta, k, graphSize);
@@ -235,7 +324,8 @@ public class RunSymbolic
             {
                 elasticStability = GraphElasticSensitivity
                         .calculateElasticSensitivityAtK(k, starQueriesMap,
-                                EPSILON, hdtDataSource);
+                                EPSILON, hdtDataSource, mapMostFreqValue,
+                                mapMostFreqValueStar);
                 // elasticStability = GraphElasticSensitivity
                 // .calculateElasticSensitivityAtK(k,
                 // (ElementPathBlock) element, EPSILON);
@@ -244,22 +334,23 @@ public class RunSymbolic
                 smoothSensitivity = GraphElasticSensitivity
                         .smoothElasticSensitivity(elasticStability, 0, beta, k,
                                 graphSize);
-                logger.info("Path Smooth Sensitivity: " + smoothSensitivity);
+                logger.info("Path Smooth Sensitivity: "
+                        + smoothSensitivity.getSensitivity());
             }
 
             // add noise using Laplace Probability Density Function
             // 2 * sensitivity / epsilon
-            double scale = 2 * smoothSensitivity / EPSILON;
+            double scale = 2 * smoothSensitivity.getSensitivity() / EPSILON;
             SecureRandom random = new SecureRandom();
 
             int times = 1;
             if (evaluation)
             {
-                times = 10;
+                times = 100;
             }
 
-            List<Double> resultList = new ArrayList<>();
-            int countQueryResult = HdtDataSource.executeCountQuery(queryString);
+            List<Double> privateResultList = new ArrayList<>();
+            List<Integer> resultList = new ArrayList<>();
             for (int i = 0; i < times; i++)
             {
                 double u = 0.5 - random.nextDouble();
@@ -267,6 +358,8 @@ public class RunSymbolic
                 // LaplaceDistribution l = new LaplaceDistribution(u, scale);
                 double noise = -Math.signum(u) * scale
                         * Math.log(1 - 2 * Math.abs(u));
+                logger.info("Math.log(1 - 2 * Math.abs(u)) "
+                        + Math.log(1 - 2 * Math.abs(u)));
                 // -math.signum(u) * scale * math.log(1 - 2*math.abs(u))
 
                 double finalResult1 = countQueryResult + noise;
@@ -275,59 +368,18 @@ public class RunSymbolic
                 logger.info("Original result: " + countQueryResult);
                 logger.info("Noise added: " + Math.round(noise));
                 logger.info("Private Result: " + Math.round(finalResult1));
-                resultList.add(finalResult1);
-
-                // Result result = new Result(EPSILON, resultList, k,
-                // countQueryResult, graphSize, scale, elasticStability,
-                // graphSize, starQuery, maxFreqMap);
-                //
-                // StringBuffer csvLine = new StringBuffer();
-                // csvLine.append(result.toString());
-                // csvLine.append(queryFile);
-                // csvLine.append(",");
-                // csvLine.append(countQueryResult);
-                // csvLine.append(",");
-                // csvLine.append(finalResult1);
-                // csvLine.append(",");
-                // int queryTriples = ((ElementPathBlock) element).getPattern()
-                // .size();
-                // csvLine.append(queryTriples);
-                // csvLine.append(",");
-                // if (starQuery)
-                // {
-                // csvLine.append("starQuery");
-                // }
-                // else
-                // {
-                // csvLine.append("NOstarQuery");
-                // }
-                // csvLine.append(",");
-                // csvLine.append(EPSILON);
-                // csvLine.append(",");
-                // csvLine.append(scale);
-                // csvLine.append(",");
-                // csvLine.append(elasticStability);
-                // csvLine.append(",");
-                // csvLine.append(k);
-                // csvLine.append(",");
-                // csvLine.append(graphSize);
-                // csvLine.append("\n");
-
-                // logger.info("query result: " +
-                // csvLine.toString().getBytes());
-                //
-                // Files.write(Paths.get(outpuFile),
-                // csvLine.toString().getBytes(),
-                // StandardOpenOption.APPEND);
+                privateResultList.add(finalResult1);
+                resultList.add(countQueryResult);
             }
-            Result result = new Result(queryFile, EPSILON, resultList, k, countQueryResult,
-                    graphSize, scale, elasticStability, graphSize, starQuery,
-                    maxFreqMap);
+            Result result = new Result(queryFile, EPSILON, privateResultList,
+                    smoothSensitivity.getSensitivity(), resultList,
+                    smoothSensitivity.getMaxK(), scale, elasticStability,
+                    graphSize, starQuery, mapMostFreqValue,
+                    mapMostFreqValueStar);
 
             StringBuffer csvLine = new StringBuffer();
             csvLine.append(result.toString().replace('\n', ' '));
             csvLine.append("\n");
-            logger.info("query result: " + csvLine.toString().getBytes());
 
             Files.write(Paths.get(outpuFile), csvLine.toString().getBytes(),
                     StandardOpenOption.APPEND);

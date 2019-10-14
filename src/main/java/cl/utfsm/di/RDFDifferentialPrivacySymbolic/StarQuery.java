@@ -14,7 +14,7 @@ public class StarQuery
     private List<TriplePath> triples;
 
     // the smoothed sensitivity of the star query
-    private double querySentitivity;
+    private Sensitivity querySentitivity;
 
     private int keyCardinality;
 
@@ -125,12 +125,12 @@ public class StarQuery
         return triples;
     }
 
-    public double getQuerySentitivity()
+    public Sensitivity getQuerySentitivity()
     {
         return querySentitivity;
     }
 
-    public void setQuerySentitivity(double res)
+    public void setQuerySentitivity(Sensitivity res)
     {
         this.querySentitivity = res;
     }
