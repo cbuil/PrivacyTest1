@@ -62,6 +62,7 @@ public class RunSymbolic
         options.addOption("e", "dir", true, "query directory");
         options.addOption("o", "dir", true, "output file");
         options.addOption("v", "evaluation", true, "evaluation");
+        options.addOption("eps", "epsilon", true, "epsilon");
         String queryString = "";
         String queryFile = "";
         String queryDir = "";
@@ -77,6 +78,14 @@ public class RunSymbolic
             if (cmd.hasOption("q"))
             {
                 queryString = cmd.getOptionValue("q");
+            }
+            else
+            {
+                logger.info("Missing SPARQL query ");
+            }
+            if (cmd.hasOption("eps"))
+            {
+                EPSILON = Double.parseDouble(cmd.getOptionValue("eps"));
             }
             else
             {
@@ -291,7 +300,7 @@ public class RunSymbolic
             // }
 
             String construct = queryString.replaceFirst("SELECT.*WHERE",
-                    "CONSTRUCT WHERE");
+                    "CONSTRUCT WHERE").replaceFirst("FILTER.*\\)", "");
             logger.info("graph query: " + construct);
             Query constructQuery = QueryFactory.create(construct);
             long graphSize = HdtDataSource.graphSizeCache.get(constructQuery);
