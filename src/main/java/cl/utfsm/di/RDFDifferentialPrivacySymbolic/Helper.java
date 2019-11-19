@@ -67,7 +67,9 @@ public class Helper
                     starMap.put(tripleInQuery.getSubject().getName(),
                             tripleList);
                 }
-            } else if(tripleInQuery.getSubject().isURI()) {
+            }
+            else if (tripleInQuery.getSubject().isURI())
+            {
                 if (!starMap.containsKey(tripleInQuery.getSubject().getURI()))
                 {
                     tripleList = new ArrayList<TriplePath>();
@@ -89,7 +91,7 @@ public class Helper
     }
 
     /*
-    checks for a star query of the form ?s a ?p1 . ?s b ?p2
+     * checks for a star query of the form ?s a ?p1 . ?s b ?p2
      */
     public static boolean isStarQuery(Query query)
     {
@@ -122,7 +124,7 @@ public class Helper
         }
         return true;
     }
-    
+
     public static String getStarQueryString(List<TriplePath> starQuery)
     {
         StringBuffer result = new StringBuffer();
@@ -137,7 +139,8 @@ public class Helper
             else if (triplePath.asTriple()
                     .getMatchSubject() instanceof Node_Variable)
             {
-                subject = "?" + triplePath.asTriple().getMatchSubject().getName();
+                subject = "?"
+                        + triplePath.asTriple().getMatchSubject().getName();
             }
             String pred = "";
             if (triplePath.asTriple().getMatchPredicate() instanceof Node_URI)
@@ -148,7 +151,8 @@ public class Helper
             else if (triplePath.asTriple()
                     .getMatchPredicate() instanceof Node_Variable)
             {
-                pred = "?" + triplePath.asTriple().getMatchPredicate().getName();
+                pred = "?"
+                        + triplePath.asTriple().getMatchPredicate().getName();
             }
             String object = "";
             if (triplePath.asTriple().getMatchObject() instanceof Node_URI)
@@ -168,7 +172,6 @@ public class Helper
             result.append(object);
             result.append(" . \n");
         }
-        
 
         return result.toString();
     }

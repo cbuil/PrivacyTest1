@@ -1,14 +1,18 @@
 package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
-import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -19,6 +23,7 @@ import org.apache.jena.query.ResultSetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.sparql.core.TriplePath;
 import org.apache.jena.sparql.engine.http.QueryEngineHTTP;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,12 +38,26 @@ public class HdtDataSource
     private static Logger logger = LogManager
             .getLogger(HdtDataSource.class.getName());
 
-    private static HDT datasource;
-    private static NodeDictionary dictionary;
-    private static HDTGraph graph;
-    private static Model triples;
-    public static LoadingCache<MaxFreqQuery, Integer> mostFrequenResultCache;
-    public static LoadingCache<Query, Long> graphSizeCache;
+    private HDT datasource;
+    private NodeDictionary dictionary;
+    private HDTGraph graph;
+    private Model triples;
+    public LoadingCache<MaxFreqQuery, Integer> mostFrequenResultCache;
+    public LoadingCache<Query, Long> graphSizeCache;
+
+    private static Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
+
+    private static Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
+
+    public Map<String, List<Integer>> getMapMostFreqValue()
+    {
+        return mapMostFreqValue;
+    }
+
+    public Map<String, List<StarQuery>> getMapMostFreqValueStar()
+    {
+        return mapMostFreqValueStar;
+    }
 
     /**
      * Creates a new HdtDataSource.
@@ -94,7 +113,7 @@ public class HdtDataSource
                 });
     }
 
-    private static int getMostFrequentResult(String starQuery,
+    private int getMostFrequentResult(String starQuery,
             String variableName)
     {
 
@@ -125,7 +144,7 @@ public class HdtDataSource
         }
     }
 
-    public static ResultSet excecuteQuery(Query query)
+    public ResultSet excecuteQuery(Query query)
     {
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples))
@@ -137,7 +156,7 @@ public class HdtDataSource
         }
     }
 
-    public static ResultSet excecuteQuery(Query query, String endpoint)
+    public ResultSet excecuteQuery(Query query, String endpoint)
     {
         try (QueryExecution qexec = (QueryEngineHTTP) QueryExecutionFactory
                 .sparqlService(endpoint, query))
@@ -149,7 +168,7 @@ public class HdtDataSource
         }
     }
 
-    private static long getGraphSize(Query query)
+    public long getGraphSize(Query query)
     {
         try (QueryExecution qexec = QueryExecutionFactory.create(query,
                 triples))
@@ -161,16 +180,19 @@ public class HdtDataSource
         }
     }
 
-    public static int executeCountQuery(String queryString)
+    public int executeCountQuery(String queryString)
     {
         Query query = QueryFactory.create(queryString);
-        ResultSet results = HdtDataSource.excecuteQuery(query);
+        logger.info("count query: " + queryString);
+        ResultSet results = excecuteQuery(query);
         QuerySolution soln = results.nextSolution();
         RDFNode x = soln.get(soln.varNames().next());
-        return x.asLiteral().getInt();
+        int countResult = x.asLiteral().getInt();
+        logger.info("count query result (dataset): " + countResult);
+        return countResult;
     }
 
-    public static int executeCountQuery(String queryString, String endpoint)
+    public int executeCountQuery(String queryString, String endpoint)
     {
 
         Query query = QueryFactory.create(queryString);
@@ -183,11 +205,13 @@ public class HdtDataSource
         logger.info("count query executed... ");
         qexec.close();
         RDFNode x = soln.get(soln.varNames().next());
-        return x.asLiteral().getInt();
+        int countResult = x.asLiteral().getInt();
+        logger.info("count query result (endpoint): " + countResult);
+        return countResult;
     }
 
-    public static long getGraphSizeTriples(
-            List<List<String>> triplePatternsCount, String endpoint)
+    public long getGraphSizeTriples(List<List<String>> triplePatternsCount,
+            String endpoint)
     {
         long count = 0;
         for (List<String> star : triplePatternsCount)
@@ -198,9 +222,89 @@ public class HdtDataSource
                 construct += tp + " . ";
             }
             logger.info("construct query for graph size so far: " + construct);
-            count += executeCountQuery("SELECT (COUNT(*) as ?count) WHERE {" + construct + "}", endpoint);
+            count += executeCountQuery(
+                    "SELECT (COUNT(*) as ?count) WHERE {" + construct + "}");
             logger.info("graph size so far: " + count);
         }
         return count;
+    }
+
+    public void setMostFreqValueMaps(
+            Map<String, List<TriplePath>> starQueriesMap,
+            List<List<String>> triplePatterns) throws ExecutionException
+    {
+        Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
+        Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
+        for (String key : starQueriesMap.keySet())
+        {
+            List<String> listTriple = new ArrayList();
+            List<TriplePath> starQueryLeft = starQueriesMap.get(key);
+            List<String> varStrings = new ArrayList<>();
+            int i = 0;
+            for (TriplePath triplePath : starQueryLeft)
+            {
+                String triple = "";
+                if (triplePath.getSubject().isVariable())
+                {
+                    varStrings.add(triplePath.getSubject().getName());
+                    triple += "?" + triplePath.getSubject().getName();
+                }
+                else
+                {
+                    triple += " ?s" + i + " ";
+                }
+                triple += "<" + triplePath.getPredicate().getURI() + "> ";
+                if (triplePath.getObject().isVariable())
+                {
+                    varStrings.add(triplePath.getObject().getName());
+                    triple += "?" + triplePath.getObject().getName();
+                }
+                else
+                {
+                    triple += " ?o" + i + " ";
+                }
+                i++;
+                listTriple.add(triple);
+            }
+
+            triplePatterns.add(listTriple);
+
+            Set<String> listWithoutDuplicates = new LinkedHashSet<String>(
+                    varStrings);
+            varStrings.clear();
+
+            varStrings.addAll(listWithoutDuplicates);
+
+            for (String var : varStrings)
+            {
+                MaxFreqQuery query = new MaxFreqQuery(
+                        Helper.getStarQueryString(starQueryLeft), var);
+                if (mapMostFreqValue.containsKey(var))
+                {
+                    List<Integer> mostFreqValues = mapMostFreqValue.get(var);
+                    List<StarQuery> mostFreqValuesStar = mapMostFreqValueStar
+                            .get(var);
+                    if (!mostFreqValues.isEmpty())
+                    {
+                        mostFreqValues.add(this.mostFrequenResultCache
+                                .get(query));
+                        mapMostFreqValue.put(var, mostFreqValues);
+
+                        mostFreqValuesStar.add(new StarQuery(starQueryLeft));
+                        mapMostFreqValueStar.put(var, mostFreqValuesStar);
+                    }
+                }
+                else
+                {
+                    List<Integer> mostFreqValues = new ArrayList<>();
+                    mostFreqValues.add(
+                            this.mostFrequenResultCache.get(query));
+                    mapMostFreqValue.put(var, mostFreqValues);
+                    List<StarQuery> mostFreqValuesStar = new ArrayList<>();
+                    mostFreqValuesStar.add(new StarQuery(starQueryLeft));
+                    mapMostFreqValueStar.put(var, mostFreqValuesStar);
+                }
+            }
+        }
     }
 }
