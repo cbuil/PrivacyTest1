@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
+package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,6 +13,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
+
+import cl.utfsm.di.RDFDifferentialPrivacy.utils.Helper;
+
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;

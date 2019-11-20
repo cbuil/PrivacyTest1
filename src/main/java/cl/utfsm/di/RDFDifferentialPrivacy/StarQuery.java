@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
+package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import java.util.ArrayList;
 import java.util.List;

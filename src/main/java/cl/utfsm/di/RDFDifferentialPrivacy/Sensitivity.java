@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
+package cl.utfsm.di.RDFDifferentialPrivacy;
 
 import symjava.symbolic.Expr;
 

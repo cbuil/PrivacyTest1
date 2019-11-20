@@ -199,3 +199,4 @@ buildNumber.properties
 # End of https://www.gitignore.io/api/java,maven,eclipse,intellij
 /resources/watdiv.100M.nt.hdt
 /resources/watdiv.100M.nt.hdt.index.v1-1
+/.apt_generated_tests/

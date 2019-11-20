@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacy;
+package cl.utfsm.di.RDFDifferentialPrivacy.Run;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
+package cl.utfsm.di.RDFDifferentialPrivacy.utils;
 
 import org.apache.jena.graph.Node_URI;
 import org.apache.jena.graph.Node_Variable;

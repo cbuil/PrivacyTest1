@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
+package cl.utfsm.di.RDFDifferentialPrivacy.Run;
 
 import symjava.symbolic.Expr;
 
@@ -9,20 +9,22 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import cl.utfsm.di.RDFDifferentialPrivacy.StarQuery;
+
 public class Result
 {
-    public String query;
-    public double epsilon;
-    public List<Double> privateResult;
-    public double sensitivity;
-    public List<Integer> result;
-    public Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
-    public Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
-    public int maxK;
-    public double scale;
-    public String elasticStability;
-    public long graphSize;
-    public boolean starQuery;
+    private String query;
+    private double epsilon;
+    private List<Double> privateResult;
+    private double sensitivity;
+    private List<Integer> result;
+    private Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
+    private Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
+    private int maxK;
+    private double scale;
+    private String elasticStability;
+    private long graphSize;
+    private boolean starQuery;
 
     public Result(String query, double epsilon, List<Double> resultList, double sensitivity, List<Integer>  result,
             int maxK, double scale, Expr elasticStability,

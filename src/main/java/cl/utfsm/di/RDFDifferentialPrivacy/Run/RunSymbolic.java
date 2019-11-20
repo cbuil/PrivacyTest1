@@ -1,4 +1,4 @@
-package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
+package cl.utfsm.di.RDFDifferentialPrivacy.Run;
 
 import static symjava.symbolic.Symbol.x;
 
@@ -32,6 +32,10 @@ import org.apache.jena.sparql.syntax.ElementPathBlock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import cl.utfsm.di.RDFDifferentialPrivacy.GraphElasticSensitivity;
+import cl.utfsm.di.RDFDifferentialPrivacy.HdtDataSource;
+import cl.utfsm.di.RDFDifferentialPrivacy.Sensitivity;
+import cl.utfsm.di.RDFDifferentialPrivacy.utils.Helper;
 import symjava.symbolic.Expr;
 
 public class RunSymbolic

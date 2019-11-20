@@ -36,7 +36,7 @@
 					<execution>
 						<id>run-evaluation</id>
 						<configuration>
-							<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunSymbolic</mainClass>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunSymbolic</mainClass>
 						</configuration>
 					</execution>
 					<!-- <execution> <id>run-dp-dir</id> <configuration> <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunDirectory</mainClass> 
@@ -44,13 +44,13 @@
 					<execution>
 						<id>run-query-gen</id>
 						<configuration>
-							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.GenerateCountQueries</mainClass>
+							<mainClass>cl.utfsm.di.RDFDifferential.Run.GenerateCountQueries</mainClass>
 						</configuration>
 					</execution>
 					<execution>
 						<id>run-query</id>
 						<configuration>
-							<mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunQuery</mainClass>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunQuery</mainClass>
 						</configuration>
 					</execution>
 				</executions>
