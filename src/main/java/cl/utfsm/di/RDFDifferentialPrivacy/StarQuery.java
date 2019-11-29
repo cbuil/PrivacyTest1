@@ -22,7 +22,7 @@ public class StarQuery
     // only appears when there are more than two star queries
     private Expr elasticStability;
     
-    private Expr maxFrequency;
+    private MaxFreqValue maxFrequency;
 
     public StarQuery(List<TriplePath> triples)
     {
@@ -145,12 +145,12 @@ public class StarQuery
         this.elasticStability = elasticStability;
     }
 
-    public Expr getMaxFrequency()
+    public MaxFreqValue getMaxFrequency()
     {
         return maxFrequency;
     }
 
-    public void setMaxFrequency(Expr maxFrequency)
+    public void setMaxFrequency(MaxFreqValue maxFrequency)
     {
         this.maxFrequency = maxFrequency;
     }

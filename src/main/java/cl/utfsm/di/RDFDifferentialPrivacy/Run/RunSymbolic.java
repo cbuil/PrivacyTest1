@@ -139,11 +139,11 @@ public class RunSymbolic
                     .replaceFirst("FILTER.*\\)", "");
             logger.info("graph query: " + construct);
             Query constructQuery = QueryFactory.create(construct);
-            long graphSize = hdtDataSource.graphSizeCache.get(constructQuery);
+//            long graphSize = hdtDataSource.graphSizeCache.get(constructQuery);
 
             hdtDataSource.setMostFreqValueMaps(starQueriesMap, triplePatterns);
 
-            graphSize = hdtDataSource.getGraphSizeTriples(triplePatterns,
+            long graphSize = hdtDataSource.getGraphSizeTriples(triplePatterns,
                     endpoint);
             logger.info("graph size " + graphSize);
             // delta parameter: use 1/n^2, with n = size of the data in the
