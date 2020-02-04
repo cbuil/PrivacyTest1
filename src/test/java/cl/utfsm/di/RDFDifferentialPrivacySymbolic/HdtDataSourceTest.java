@@ -22,18 +22,18 @@ import static org.junit.Assert.assertEquals;
 
 public class HdtDataSourceTest
 {
-    private Logger logger = LogManager
+    private final Logger logger = LogManager
             .getLogger(HdtDataSourceTest.class.getName());
 
-    private String queryString = "SELECT (COUNT(?v0) as ?count) WHERE {\n"
+    private final String queryString = "SELECT (COUNT(?v0) as ?count) WHERE {\n"
             + "        ?v0 <http://purl.org/goodrelations/includes> ?v1 .      \n"
             + "        ?v0 <http://purl.org/goodrelations/price> ?v3 . \n"
             + "        ?v0 <http://purl.org/goodrelations/validThrough> ?v4 .  \n"
             + "        ?v1 <http://ogp.me/ns#title> ?v5 .      \n"
             + "        ?v1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v6 . \n"
             + "        FILTER (?v3 > \"30\")\n" + "  }\n" + "";
-    private String endpoint = "http://localhost:3030/watdiv/sparql";
-    private String hdtFile = "resources/watdiv.100M.nt.hdt";
+    private final String endpoint = "http://localhost:3030/watdiv/sparql";
+    private final String hdtFile = "resources/watdiv.100M.nt.hdt";
     private static HdtDataSource hdtDataSource;
     private MaxFreqQuery maxFreqQuery;
     private Query query;
@@ -42,8 +42,6 @@ public class HdtDataSourceTest
     /**
      * Creates a new HdtDataSource.
      *
-     * @param hdtFile
-     *            the HDT datafile
      * @throws IOException
      *             if the file cannot be loaded
      */
@@ -98,7 +96,7 @@ public class HdtDataSourceTest
         catch (ExecutionException e)
         {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         assertEquals(1460762, results);
     }
@@ -117,7 +115,7 @@ public class HdtDataSourceTest
         catch (ExecutionException e)
         {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         assertEquals(1, results);
     }
@@ -140,8 +138,8 @@ public class HdtDataSourceTest
     @Test
     public void getGraphSizeTriples()
     {
-        List<List<String>> triplePatternsCount = new ArrayList<List<String>>();
-        List<String> triplePatterns = new ArrayList<String>();
+        List<List<String>> triplePatternsCount = new ArrayList<>();
+        List<String> triplePatterns = new ArrayList<>();
         triplePatterns.add("?v0 <http://purl.org/goodrelations/includes> ?v1 ");
         triplePatterns.add("?v0 <http://purl.org/goodrelations/price> ?v3 ");
         triplePatterns.add("?v0 <http://purl.org/goodrelations/validThrough> ?v4 ");

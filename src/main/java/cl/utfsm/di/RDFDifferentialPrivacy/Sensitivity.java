@@ -4,8 +4,17 @@ import symjava.symbolic.Expr;
 
 public class Sensitivity
 {
+    /*
+    @sensitivity double the value of the query sensitivity
+    */
     private double sensitivity;
+    /*
+    @s Expr the polinomial for the sensitivity
+    */
     private Expr s;
+    /*
+    @maxK int the max iteration needed to get to the sensitivity
+    */
     private int maxK;
 
     public Sensitivity(double sensitivity, Expr s)
