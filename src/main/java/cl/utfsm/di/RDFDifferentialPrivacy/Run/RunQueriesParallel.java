@@ -44,7 +44,7 @@ public class RunQueriesParallel
     private static String queryFilesDir = "";
     private static String dataFile = "";
     private static String outputFile = "";
-    private static String endpoint = "";
+    private static String cores = "";
     private static boolean evaluation = false;
 
     public static void main(String args[]) throws IOException, InterruptedException, ExecutionException
@@ -58,7 +58,7 @@ public class RunQueriesParallel
                     .collect(Collectors.toList());
         }
         HdtDataSource dataSource = new HdtDataSource(dataFile);
-        ExecutorService executor = Executors.newFixedThreadPool(10);
+        ExecutorService executor = Executors.newFixedThreadPool(Integer.parseInt(cores));
         List tasks = new ArrayList();
         for(String queryFile : queryFiles){
             queryString = new Scanner(new File(queryFile))
@@ -93,7 +93,7 @@ public class RunQueriesParallel
 
         options.addOption("f", "qFile", true, "input SPARQL query File");
         options.addOption("d", "data", true, "HDT data file");
-        options.addOption("e", "endpoint", true, "endpoint");
+        options.addOption("c", "cores", true, "cores");
         options.addOption("o", "output", true, "output file");
 
         CommandLineParser parser = new DefaultParser();
@@ -117,12 +117,12 @@ public class RunQueriesParallel
             {
                 logger.info("Missing data file");
             }
-            if (cmd.hasOption("e"))
+            if (cmd.hasOption("c"))
             {
-                endpoint = cmd.getOptionValue("e");
+                cores = cmd.getOptionValue("c");
             } else
             {
-                logger.info("Missing endpoint address");
+                logger.info("Missing number of cores");
             }
             if (cmd.hasOption("o"))
             {
