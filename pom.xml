@@ -53,6 +53,12 @@
 							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunQuery</mainClass>
 						</configuration>
 					</execution>
+                                        <execution>
+						<id>run-parallel</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunQueriesParallel</mainClass>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

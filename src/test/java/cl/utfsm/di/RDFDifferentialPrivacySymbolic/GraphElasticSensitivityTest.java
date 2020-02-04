@@ -89,6 +89,16 @@ public class GraphElasticSensitivityTest
                 "  }\n" + 
                 "";
         
+        queryString = "SELECT (COUNT(?v0) as ?count) WHERE {\n" + 
+                "        <http://db.uwaterloo.ca/~galuc/wsdbm/Retailer9247> <http://purl.org/goodrelations/offers> ?v0 . \n" +
+                "  	?v0 <http://purl.org/goodrelations/includes> ?v1 . 		\n" +
+                "  	?v0 <http://purl.org/goodrelations/price> ?v3 . 	\n" +
+                "  	?v0 <http://purl.org/goodrelations/validThrough> ?v4 . 	\n" +
+                "  	?v1 <http://ogp.me/ns#title> ?v5 . 	\n" +
+                "  	?v1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v6 . \n" + 
+                "  }\n" + 
+                "";
+        
 //        Triple triple = new Triple(NodeFactory.createVariable("v0"), NodeFactory.createURI("<http://purl.org/goodrelations/includes>"), NodeFactory.createVariable("v1"));
 //        TriplePath tp = new TriplePath(triple);
         Query q = QueryFactory.create(queryString);

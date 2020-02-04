@@ -107,6 +107,7 @@ public class GraphElasticSensitivity
                 Sensitivity smoothSensitivityFirstStar = new Sensitivity(1.0,
                         elasticStabilityFirstStar);
                 starQueryFirst.setQuerySentitivity(smoothSensitivityFirstStar);
+                prevQuery.setMaxFrequency(new MaxFreqValue(prevQuery.getMaxFrequency().getStarQueryLeft(), new Pair<>(starQueryFirst, "")));
                 newStarQueryJoined = calculateJoinSensitivity(starQueryFirst, newStarQueryJoined, hdtDataSource, prevQuery);
                 prevQuery = newStarQueryJoined;
             }
@@ -117,7 +118,7 @@ public class GraphElasticSensitivity
     }
 
     private static Expr mostPopularValue(String var, StarQuery starQuery,
-            HdtDataSource hdtDataSource, Pair<StarQuery, StarQuery> prevQueries)
+            HdtDataSource hdtDataSource, StarQuery prevQueries)
             throws CloneNotSupportedException, ExecutionException
     {
         // base case: mf(a,r_1,x)
@@ -126,8 +127,14 @@ public class GraphElasticSensitivity
                 .get(new MaxFreqQuery(starQuery.toString(), var)));
         if (prevQueries != null)
         {
-            StarQuery q1 = prevQueries.getKey();
-            StarQuery q2 = prevQueries.getValue();
+            StarQuery q1 = prevQueries.getMaxFrequency().getStarQueryLeft().getKey();
+            StarQuery q2 = null;
+            if (prevQueries.getMaxFrequency().getStarQueryRight() != null)
+            {
+                q2 = prevQueries.getMaxFrequency().getStarQueryRight().getKey();
+            } else {
+                q2 = starQuery;
+            }
             List<String> joinVariables = q1.getVariables();
             joinVariables.retainAll(q2.getVariables());
             if (q1.getVariables().contains(var))
@@ -188,7 +195,7 @@ public class GraphElasticSensitivity
         newStarQueryPrime.addStarQuery(starQueryRight.getTriples());
         newStarQueryPrime.setElasticStability(res);
 
-        MaxFreqValue mfValue = new MaxFreqValue(newStarQueryPrime, null);
+        MaxFreqValue mfValue = new MaxFreqValue(new Pair<StarQuery, String>(newStarQueryPrime, ""), null);
         newStarQueryPrime.setMaxFrequency(mfValue);
 
         return newStarQueryPrime;
