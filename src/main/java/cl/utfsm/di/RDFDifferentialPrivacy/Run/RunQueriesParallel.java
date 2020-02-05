@@ -27,8 +27,14 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rdfhdt.hdt.hdt.HDT;
+import org.rdfhdt.hdt.hdt.HDTManager;
+import org.rdfhdt.hdtjena.HDTGraph;
+import org.rdfhdt.hdtjena.NodeDictionary;
 
 /**
  *
@@ -46,6 +52,11 @@ public class RunQueriesParallel
     private static String outputFile = "";
     private static String cores = "";
     private static boolean evaluation = false;
+    
+    private static HDT datasource;
+    private static NodeDictionary dictionary;
+    private static HDTGraph graph;
+    private static Model triples;
 
     public static void main(String args[]) throws IOException, InterruptedException, ExecutionException
     {
@@ -57,13 +68,17 @@ public class RunQueriesParallel
                     .filter(Files::isRegularFile).map(x -> x.toString())
                     .collect(Collectors.toList());
         }
-        HdtDataSource dataSource = new HdtDataSource(dataFile);
+
+        datasource = HDTManager.mapIndexedHDT(dataFile, null);
+        dictionary = new NodeDictionary(datasource.getDictionary());
+        graph = new HDTGraph(datasource);
+        triples = ModelFactory.createModelForGraph(graph);
         ExecutorService executor = Executors.newFixedThreadPool(Integer.parseInt(cores));
         List tasks = new ArrayList();
         for(String queryFile : queryFiles){
             queryString = new Scanner(new File(queryFile))
                         .useDelimiter("\\Z").next();
-            tasks.add(new RunSparqlQuery(dataSource, queryString, queryFile));
+            tasks.add(new RunSparqlQuery(triples, queryString, queryFile));
         }
         List<Future<Integer>> futures = executor.invokeAll(tasks);
         executor.shutdown();
