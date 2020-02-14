@@ -72,6 +72,30 @@ public class GraphElasticSensitivity
             StarQuery starQueryFirst = new StarQuery(
                     starQueriesMap.get(starVariable));
             starQueriesMap.remove(starVariable);
+            Expr elasticStabilityLeft = Expr.valueOf(0);
+            Sensitivity smoothSensitivityLeft = new Sensitivity(0.0,
+                    elasticStabilityLeft);
+            elasticStabilityLeft = x;
+            Sensitivity sensitivity = new Sensitivity(1.0,
+                    elasticStabilityLeft);
+            starQueryLeft.setElasticStability(elasticStabilityLeft);
+            // left side smooth sensitivity
+
+            // update to new graph size calculation
+            String construct = "CONSTRUCT WHERE { " + starQueryLeft.toString()
+                    + "}";
+            Query constructQuery = QueryFactory.create(construct);
+            long graphSize = hdtDataSource.graphSizeCache.get(constructQuery);
+            double DELTA = 1 / (Math.pow(graphSize, 2));
+            double beta = EPSILON / (2 * Math.log(2 / DELTA));
+
+            smoothSensitivityLeft = smoothElasticSensitivityStar(
+                    elasticStabilityLeft, sensitivity, beta, k, graphSize);
+            logger.info("star query (smooth) sensitivity: "
+                    + smoothSensitivityLeft);
+            starQueryLeft.setQuerySentitivity(smoothSensitivityLeft);
+
+            Expr res = Expr.valueOf(0);
 
             // base case: i == 0 && bgpIt.hasNext()
             // Getting first and second star queries to calculate its differential privacy
@@ -102,6 +126,50 @@ public class GraphElasticSensitivity
                 prevQuery = newStarQueryJoined;
             } else
             {
+                // we only take into account one join variable
+                // max(mf_k(a,r_1,x)S_R(r_2,x), mf_k(b,r_2,x)S_R(r_1,x))
+
+                Expr mostFreqValueLeft = maxFreq(joinVariables.get(0),
+                        starQueryLeft, hdtDataSource);
+                logger.info("mostFreqValueLeft: " + mostFreqValueLeft);
+                Expr mostFreqValueRight = maxFreq(joinVariables.get(0),
+                        starPrime, hdtDataSource);
+                logger.info("mostFreqValueRight: " + mostFreqValueRight);
+                Func f1 = new Func("f1", mostFreqValueLeft.multiply(
+                        starPrime.getQuerySentitivity().getSensitivity()));
+
+                Func f2 = new Func("f2", mostFreqValueRight.multiply(
+                        starQueryLeft.getQuerySentitivity().getSensitivity()));
+                // BytecodeFunc func2 = f2.toBytecodeFunc();
+
+                double f1Val = Math.round(f1.toBytecodeFunc().apply(1));
+                double f2Val = Math.round(f2.toBytecodeFunc().apply(1));
+                if (f1Val > f2Val)
+                {
+                    res = f1;
+                } else
+                {
+                    res = f2;
+                }
+
+                if (!secondTime)
+                {
+                    secondTime = true;
+                } else
+                {
+                    mapMostFreqValue.get(joinVariables.get(0));
+                    mapMostFreqValueStar.get(joinVariables.get(0));
+
+                }
+                // I generate new starQueryPrime
+                // starPrime = new StarQuery(starQueryRight.getTriples());
+                starPrime.addStarQuery(starQueryLeft.getTriples());
+                starPrime.setElasticStability(res);
+            } else
+            {
+                starPrime.addStarQuery(starQueryLeft.getTriples());
+                starPrime.setElasticStability(
+                        starQueryLeft.getElasticStability());
                 Expr elasticStabilityFirstStar = Expr.valueOf(0);
                 starQueryFirst.setElasticStability(elasticStabilityFirstStar);
                 Sensitivity smoothSensitivityFirstStar = new Sensitivity(1.0,
@@ -252,5 +320,146 @@ public class GraphElasticSensitivity
                 elasticSensitivity);
         sens.setMaxK(maxI);
         return sens;
+    }
+
+    /*
+    * Calculates the Elastic Sensitivity for a list/map of star queries. The map 
+    * contains the variable pointing to a star and the list within that map 
+    * contains the triples in that star.
+     */
+    public static Expr calculateElasticSensitivityAtKCarlos(int k,
+            Map<String, List<TriplePath>> starQueriesMap, double EPSILON,
+            HdtDataSource hdtDataSource)
+            throws CloneNotSupportedException, ExecutionException
+    {
+        StarQuery starPrime = new StarQuery();
+        List<String> starVariables = new ArrayList<String>();
+        starVariables.addAll(starQueriesMap.keySet());
+        Iterator starsIterator = starVariables.iterator();
+        PrintStream dummyStream = new PrintStream(new OutputStream()
+        {
+            public void write(int b)
+            {
+                // NO-OP
+            }
+        });
+
+        System.setOut(dummyStream);
+        boolean secondTime = false;
+        while (starsIterator.hasNext())
+        {
+            String starVariable = (String) starsIterator.next();
+            StarQuery starQueryLeft = new StarQuery(
+                    starQueriesMap.get(starVariable));
+            starQueriesMap.remove(starVariable);
+
+            Sensitivity sensitivity = getElasticStability(starQueryLeft, EPSILON, hdtDataSource);
+
+            Expr res = Expr.valueOf(0);
+
+            // base case: i == 0 && bgpIt.hasNext()
+            if (starsIterator.hasNext() && starPrime.getTriples().isEmpty())
+            {
+                starVariable = (String) starsIterator.next();
+                starPrime = new StarQuery(starQueriesMap.get(starVariable));
+                starQueriesMap.remove(starVariable);
+
+                // must depend from the size of the database (the sensitivity)
+                String construct = "CONSTRUCT WHERE { " + starPrime.toString() + "}";
+                Query constructQuery = QueryFactory.create(construct);
+                long graphSize = hdtDataSource.graphSizeCache.get(constructQuery);
+                double DELTA = 1 / (Math.pow(graphSize, 2));
+                double beta = EPSILON / (2 * Math.log(2 / DELTA));
+
+                Expr elasticStabilityPrime = Expr.valueOf(0);
+                Sensitivity smoothSensitivityPrime = new Sensitivity(0.0,
+                        elasticStabilityPrime);
+                elasticStabilityPrime = x;
+                sensitivity = new Sensitivity(1.0, elasticStabilityPrime);
+                smoothSensitivityPrime = smoothElasticSensitivityStar(
+                        elasticStabilityPrime, sensitivity, beta, k, graphSize);
+                logger.info("star query prime (smooth) sensitivity: "
+                        + smoothSensitivityPrime.getSensitivity());
+                starPrime.setQuerySentitivity(smoothSensitivityPrime);
+                starPrime.setElasticStability(elasticStabilityPrime);
+            }
+
+            List<String> joinVariables = starQueryLeft.getVariables();
+            joinVariables.retainAll(starPrime.getVariables());
+
+            if (joinVariables.size() > 0)
+            {
+                // we only take into account one join variable
+                // max(mf_k(a,r_1,x)S_R(r_2,x), mf_k(b,r_2,x)S_R(r_1,x))
+
+                Expr mostFreqValueLeft = maxFreq(joinVariables.get(0),
+                        starQueryLeft, hdtDataSource);
+                logger.info("mostFreqValueLeft: " + mostFreqValueLeft);
+                Expr mostFreqValueRight = maxFreq(joinVariables.get(0),
+                        starPrime, hdtDataSource);
+                logger.info("mostFreqValueRight: " + mostFreqValueRight);
+                Func f1 = new Func("f1", mostFreqValueLeft.multiply(
+                        starPrime.getQuerySentitivity().getSensitivity()));
+
+                Func f2 = new Func("f2", mostFreqValueRight.multiply(
+                        starQueryLeft.getQuerySentitivity().getSensitivity()));
+                // BytecodeFunc func2 = f2.toBytecodeFunc();
+
+                double f1Val = Math.round(f1.toBytecodeFunc().apply(1));
+                double f2Val = Math.round(f2.toBytecodeFunc().apply(1));
+                if (f1Val > f2Val)
+                {
+                    res = f1;
+                } else
+                {
+                    res = f2;
+                }
+
+                if (!secondTime)
+                {
+                    secondTime = true;
+                } else
+                {
+                    mapMostFreqValue.get(joinVariables.get(0));
+                    mapMostFreqValueStar.get(joinVariables.get(0));
+
+                }
+                // I generate new starQueryPrime
+                // starPrime = new StarQuery(starQueryRight.getTriples());
+                starPrime.addStarQuery(starQueryLeft.getTriples());
+                starPrime.setElasticStability(res);
+            } else
+            {
+                starPrime.addStarQuery(starQueryLeft.getTriples());
+                starPrime.setElasticStability(
+                        starQueryLeft.getElasticStability());
+            }
+        }
+        return starPrime.getElasticStability();
+
+    }
+
+    private static Sensitivity getElasticStability(StarQuery starQueryLeft, double EPSILON, HdtDataSource hdtDataSource) throws ExecutionException
+    {
+        String construct = "CONSTRUCT WHERE { " + starQueryLeft.toString()
+                + "}";
+        Query constructQuery = QueryFactory.create(construct);
+        long graphSize = hdtDataSource.graphSizeCache.get(constructQuery);
+        double DELTA = 1 / (Math.pow(graphSize, 2));
+        double beta = EPSILON / (2 * Math.log(2 / DELTA));
+        Expr elasticStabilityLeft = Expr.valueOf(0);
+        elasticStabilityLeft = x;
+        starQueryLeft.setElasticStability(elasticStabilityLeft);
+        // left side smooth sensitivity
+        Sensitivity smoothSensitivityLeft = new Sensitivity(0.0,
+                elasticStabilityLeft);
+        Sensitivity sensitivity = new Sensitivity(1.0,
+                elasticStabilityLeft);
+        smoothSensitivityLeft = smoothElasticSensitivityStar(
+                elasticStabilityLeft, sensitivity, beta, k, graphSize);
+        logger.info("star query (smooth) sensitivity: "
+                + smoothSensitivityLeft);
+        starQueryLeft.setQuerySentitivity(smoothSensitivityLeft);
+        return sensitivity;
     }
 }
