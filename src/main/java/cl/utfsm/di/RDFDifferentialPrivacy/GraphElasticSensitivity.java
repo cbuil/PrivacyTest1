@@ -45,7 +45,7 @@ public class GraphElasticSensitivity
 
     public static Expr calculateElasticSensitivityAtK(int k,
             Map<String, List<TriplePath>> starQueriesMap, double EPSILON,
-            HdtDataSource hdtDataSource,
+            DataSource hdtDataSource,
             Map<String, List<Integer>> mapMostFreqValue,
             Map<String, List<StarQuery>> mapMostFreqValueStar)
             throws CloneNotSupportedException, ExecutionException
@@ -118,13 +118,12 @@ public class GraphElasticSensitivity
     }
 
     private static Expr mostPopularValue(String var, StarQuery starQuery,
-            HdtDataSource hdtDataSource, StarQuery prevQueries)
+            DataSource hdtDataSource, StarQuery prevQueries)
             throws CloneNotSupportedException, ExecutionException
     {
         // base case: mf(a,r_1,x)
         Expr expr = x;
-        expr = expr.plus(hdtDataSource.mostFrequenResultCache
-                .get(new MaxFreqQuery(starQuery.toString(), var)));
+        expr = expr.plus(hdtDataSource.mostFrequenResult(new MaxFreqQuery(starQuery.toString(), var)));
         if (prevQueries != null)
         {
             StarQuery q1 = prevQueries.getMaxFrequency().getStarQueryLeft().getKey();
@@ -132,7 +131,8 @@ public class GraphElasticSensitivity
             if (prevQueries.getMaxFrequency().getStarQueryRight() != null)
             {
                 q2 = prevQueries.getMaxFrequency().getStarQueryRight().getKey();
-            } else {
+            } else
+            {
                 q2 = starQuery;
             }
             List<String> joinVariables = q1.getVariables();
@@ -141,26 +141,22 @@ public class GraphElasticSensitivity
             {
                 // mfk(var, q1, x)mfk(a3, q2, x) if a_1 \in r_1
                 // mfk(var, q1, x)
-                expr = Expr.valueOf(hdtDataSource.mostFrequenResultCache
-                        .get(new MaxFreqQuery(q1.toString(), var)));
+                expr = Expr.valueOf(hdtDataSource.mostFrequenResult(new MaxFreqQuery(q1.toString(), var)));
                 // mfk(a3, q2, x)
-                expr = expr.multiply(hdtDataSource.mostFrequenResultCache
-                        .get(new MaxFreqQuery(q2.toString(), joinVariables.get(0))));
+                expr = expr.multiply(hdtDataSource.mostFrequenResult(new MaxFreqQuery(q2.toString(), joinVariables.get(0))));
             } else
             {
                 // mfk(var, q2, x)mfk(a2, q1, x) if a_1 \in r_2
                 // mfk(var, q2, x)
-                expr = Expr.valueOf(hdtDataSource.mostFrequenResultCache
-                        .get(new MaxFreqQuery(q2.toString(), var)));
+                expr = Expr.valueOf(hdtDataSource.mostFrequenResult(new MaxFreqQuery(q2.toString(), var)));
                 // mfk(a2, q1, x)
-                expr = expr.multiply(hdtDataSource.mostFrequenResultCache
-                        .get(new MaxFreqQuery(q1.toString(), joinVariables.get(0))));
+                expr = expr.multiply(hdtDataSource.mostFrequenResult(new MaxFreqQuery(q1.toString(), joinVariables.get(0))));
             }
         }
         return expr;
     }
 
-    private static StarQuery calculateJoinSensitivity(StarQuery starQueryLeft, StarQuery starQueryRight, HdtDataSource hdtDataSource, StarQuery prevQuery) throws CloneNotSupportedException, ExecutionException
+    private static StarQuery calculateJoinSensitivity(StarQuery starQueryLeft, StarQuery starQueryRight, DataSource hdtDataSource, StarQuery prevQuery) throws CloneNotSupportedException, ExecutionException
     {
         Expr res = Expr.valueOf(0);
 

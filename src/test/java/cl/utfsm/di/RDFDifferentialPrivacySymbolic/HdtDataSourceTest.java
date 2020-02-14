@@ -3,7 +3,6 @@ package cl.utfsm.di.RDFDifferentialPrivacySymbolic;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
@@ -22,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 public class HdtDataSourceTest
 {
+
     private final Logger logger = LogManager
             .getLogger(HdtDataSourceTest.class.getName());
 
@@ -42,10 +42,8 @@ public class HdtDataSourceTest
     /**
      * Creates a new HdtDataSource.
      *
-     * @throws IOException
-     *             if the file cannot be loaded
+     * @throws IOException if the file cannot be loaded
      */
-
     @Before
     public void ConfigureHdtDataSourceTest() throws IOException
     {
@@ -76,7 +74,7 @@ public class HdtDataSourceTest
     @Test
     public void excecuteQueryEndpointTest()
     {
-        ResultSet rs = hdtDataSource.excecuteQuery(query, endpoint);
+        ResultSet rs = hdtDataSource.excecuteQuery(query);
         QuerySolution qs = rs.next();
         RDFNode sol = qs.get("?count");
         int results = sol.asLiteral().getInt();
@@ -88,16 +86,11 @@ public class HdtDataSourceTest
     public void getGraphSize()
     {
         long results = 0;
-        try
-        {
-            results = hdtDataSource.graphSizeCache.get(constructQuery);
-            logger.info("getGraphSize result test: " + results);
-        }
-        catch (ExecutionException e)
-        {
-            // TODO Auto-generated catch block
+        Query q = QueryFactory.create(constructQuery);
+// TODO Auto-generated catch block
 //            e.printStackTrace();
-        }
+        results = hdtDataSource.getGraphSize(q);
+        logger.info("getGraphSize result test: " + results);
         assertEquals(1460762, results);
     }
 
@@ -105,18 +98,12 @@ public class HdtDataSourceTest
     public void getMostFrequentResult()
     {
         long results = 0;
-        try
-        {
-            logger.info("getMostFrequentResult test query: "
-                    + maxFreqQuery.getQuery());
-            results = hdtDataSource.mostFrequenResultCache.get(maxFreqQuery);
-            logger.info("getMostFrequentResult result test: " + results);
-        }
-        catch (ExecutionException e)
-        {
-            // TODO Auto-generated catch block
+        logger.info("getMostFrequentResult test query: "
+                + maxFreqQuery.getQuery());
+// TODO Auto-generated catch block
 //            e.printStackTrace();
-        }
+        results = hdtDataSource.mostFrequenResult(maxFreqQuery);
+        logger.info("getMostFrequentResult result test: " + results);
         assertEquals(1, results);
     }
 
@@ -131,7 +118,7 @@ public class HdtDataSourceTest
     @Test
     public void executeCountQueryEndpoint()
     {
-        int results = hdtDataSource.executeCountQuery(queryString, endpoint);
+        int results = hdtDataSource.executeCountQuery(queryString);
         assertEquals(279123, results);
     }
 
@@ -146,8 +133,7 @@ public class HdtDataSourceTest
         triplePatterns.add("?v1 <http://ogp.me/ns#title> ?v5 ");
         triplePatterns.add("?v1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v6 ");
         triplePatternsCount.add(triplePatterns);
-        long results = hdtDataSource.getGraphSizeTriples(triplePatternsCount,
-                endpoint);
+        long results = hdtDataSource.getGraphSizeTriples(triplePatternsCount);
         logger.info("getGraphSizeTriples result test: " + results);
         assertEquals(359672, results);
     }

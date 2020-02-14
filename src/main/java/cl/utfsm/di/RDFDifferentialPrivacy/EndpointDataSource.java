@@ -1,5 +1,15 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package cl.utfsm.di.RDFDifferentialPrivacy;
 
+import cl.utfsm.di.RDFDifferentialPrivacy.utils.Helper;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.Weigher;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,15 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.Weigher;
-
-import cl.utfsm.di.RDFDifferentialPrivacy.utils.Helper;
-import java.util.logging.Level;
-
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -25,60 +26,35 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.ResultSetFactory;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.sparql.core.TriplePath;
 import org.apache.jena.sparql.engine.http.QueryEngineHTTP;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rdfhdt.hdt.hdt.HDT;
-import org.rdfhdt.hdt.hdt.HDTManager;
-import org.rdfhdt.hdtjena.HDTGraph;
-import org.rdfhdt.hdtjena.NodeDictionary;
 
-public class HdtDataSource implements DataSource
+/**
+ *
+ * @author cbuil
+ */
+public class EndpointDataSource implements DataSource
 {
 
     private static Logger logger = LogManager
             .getLogger(HdtDataSource.class.getName());
 
-    private HDT datasource;
-    private NodeDictionary dictionary;
-    private HDTGraph graph;
-    private Model triples;
+    private String datasource;
+    
     private LoadingCache<MaxFreqQuery, Integer> mostFrequenResultCache;
+    
     private LoadingCache<Query, Long> graphSizeCache;
 
-    private static Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
+    private final static Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
 
-    private static Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
-
-    @Override
-    public Map<String, List<Integer>> getMapMostFreqValue()
+    private final static Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
+    
+    public EndpointDataSource(String endpoint) throws IOException
     {
-        return mapMostFreqValue;
-    }
-
-    @Override
-    public Map<String, List<StarQuery>> getMapMostFreqValueStar()
-    {
-        return mapMostFreqValueStar;
-    }
-
-    /**
-     * Creates a new HdtDataSource.
-     *
-     * @param hdtFile
-     *            the HDT datafile
-     * @throws IOException
-     *             if the file cannot be loaded
-     */
-    public HdtDataSource(String hdtFile) throws IOException
-    {
-        datasource = HDTManager.mapIndexedHDT(hdtFile, null);
-        dictionary = new NodeDictionary(datasource.getDictionary());
-        graph = new HDTGraph(datasource);
-        triples = ModelFactory.createModelForGraph(graph);
+        datasource = endpoint;
         mostFrequenResultCache = CacheBuilder.newBuilder().recordStats()
                 .maximumWeight(100000)
                 .weigher(new Weigher<MaxFreqQuery, Integer>()
@@ -119,42 +95,11 @@ public class HdtDataSource implements DataSource
                 });
     }
 
-    private int getMostFrequentResult(String starQuery,
-            String variableName)
-    {
-
-        variableName = variableName.replace("“", "").replace("”", "");
-        String maxFreqQueryString = "select (count(?" + variableName
-                + ") as ?count) where { " + starQuery + " " + "} GROUP BY ?"
-                + variableName + " " + "ORDER BY ?" + variableName
-                + " DESC (?count) LIMIT 1 ";
-
-        Query query = QueryFactory.create(maxFreqQueryString);
-        try (QueryExecution qexec = QueryExecutionFactory.create(query,
-                triples))
-        {
-            ResultSet results = qexec.execSelect();
-            if (results.hasNext())
-            {
-                QuerySolution soln = results.nextSolution();
-                RDFNode x = soln.get("count");
-                int res = x.asLiteral().getInt();
-                logger.info("max freq value: " + res + " for variable "
-                        + variableName);
-                return res;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-    }
-
     @Override
     public ResultSet excecuteQuery(Query query)
     {
-        try (QueryExecution qexec = QueryExecutionFactory.create(query,
-                triples))
+        try (QueryExecution qexec = (QueryEngineHTTP) QueryExecutionFactory
+                .sparqlService(datasource, query))
         {
             ResultSet results = qexec.execSelect();
             results = ResultSetFactory.copyResults(results);
@@ -166,8 +111,8 @@ public class HdtDataSource implements DataSource
     @Override
     public long getGraphSize(Query query)
     {
-        try (QueryExecution qexec = QueryExecutionFactory.create(query,
-                triples))
+        try (QueryExecution qexec = (QueryEngineHTTP) QueryExecutionFactory
+                .sparqlService(datasource, query))
         {
             Model results = qexec.execConstruct();
             long resultSize = results.size();
@@ -181,11 +126,16 @@ public class HdtDataSource implements DataSource
     {
         Query query = QueryFactory.create(queryString);
         logger.info("count query: " + queryString);
-        ResultSet results = excecuteQuery(query);
+        logger.info("query endpoint: " + datasource);
+        QueryExecution qexec = (QueryEngineHTTP) QueryExecutionFactory
+                .sparqlService(datasource, query);
+        ResultSet results = qexec.execSelect();
         QuerySolution soln = results.nextSolution();
+        logger.info("count query executed... ");
+        qexec.close();
         RDFNode x = soln.get(soln.varNames().next());
         int countResult = x.asLiteral().getInt();
-        logger.info("count query result (dataset): " + countResult);
+        logger.info("count query result (endpoint): " + countResult);
         return countResult;
     }
 
@@ -209,9 +159,13 @@ public class HdtDataSource implements DataSource
     }
 
     @Override
-    public void setMostFreqValueMaps(
-            Map<String, List<TriplePath>> starQueriesMap,
-            List<List<String>> triplePatterns) throws ExecutionException
+    public int mostFrequenResult(MaxFreqQuery maxFreqQuery)
+    {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setMostFreqValueMaps(Map<String, List<TriplePath>> starQueriesMap, List<List<String>> triplePatterns) throws ExecutionException
     {
         Map<String, List<Integer>> mapMostFreqValue = new HashMap<>();
         Map<String, List<StarQuery>> mapMostFreqValueStar = new HashMap<>();
@@ -228,8 +182,7 @@ public class HdtDataSource implements DataSource
                 {
                     varStrings.add(triplePath.getSubject().getName());
                     triple += "?" + triplePath.getSubject().getName();
-                }
-                else
+                } else
                 {
                     triple += " ?s" + i + " ";
                 }
@@ -238,8 +191,7 @@ public class HdtDataSource implements DataSource
                 {
                     varStrings.add(triplePath.getObject().getName());
                     triple += "?" + triplePath.getObject().getName();
-                }
-                else
+                } else
                 {
                     triple += " ?o" + i + " ";
                 }
@@ -273,8 +225,7 @@ public class HdtDataSource implements DataSource
                         mostFreqValuesStar.add(new StarQuery(starQueryLeft));
                         mapMostFreqValueStar.put(var, mostFreqValuesStar);
                     }
-                }
-                else
+                } else
                 {
                     List<Integer> mostFreqValues = new ArrayList<>();
                     mostFreqValues.add(
@@ -289,21 +240,46 @@ public class HdtDataSource implements DataSource
     }
 
     @Override
-    public int mostFrequenResult(MaxFreqQuery maxFreqQuery)
+    public Map<String, List<StarQuery>> getMapMostFreqValueStar()
     {
-        try
+        return mapMostFreqValueStar;
+    }
+
+    @Override
+    public Map<String, List<Integer>> getMapMostFreqValue()
+    {
+        return mapMostFreqValue;
+    }
+    
+    private int getMostFrequentResult(String starQuery,
+            String variableName)
+    {
+
+        variableName = variableName.replace("“", "").replace("”", "");
+        String maxFreqQueryString = "select (count(?" + variableName
+                + ") as ?count) where { " + starQuery + " " + "} GROUP BY ?"
+                + variableName + " " + "ORDER BY ?" + variableName
+                + " DESC (?count) LIMIT 1 ";
+
+        Query query = QueryFactory.create(maxFreqQueryString);
+        try (QueryExecution qexec = (QueryEngineHTTP) QueryExecutionFactory
+                .sparqlService(datasource, query))
         {
-            return this.mostFrequenResultCache
-                    .get(maxFreqQuery);
-        } catch (ExecutionException ex)
-        {
-            java.util.logging.Logger.getLogger(HdtDataSource.class.getName()).log(Level.SEVERE, null, ex);
-            return -1;
+            ResultSet results = qexec.execSelect();
+            if (results.hasNext())
+            {
+                QuerySolution soln = results.nextSolution();
+                RDFNode x = soln.get("count");
+                int res = x.asLiteral().getInt();
+                logger.info("max freq value: " + res + " for variable "
+                        + variableName);
+                return res;
+            }
+            else
+            {
+                return 0;
+            }
         }
     }
 
-    public String mostFrequenResultStats()
-    {
-        return mostFrequenResultCache.stats().toString();
-    }
 }

@@ -32,6 +32,9 @@ public class GenerateCountQueries
     
     private static Logger logger = LogManager
             .getLogger(GenerateCountQueries.class.getName());
+    
+
+//%SELECT DISTINCT ?var1  ?var1Label  ?var2  ?var2Label  ?var3  ?var4 WHERE {  ?var2 ( <http://www.wikidata.org/prop/direct/P31> / <http://www.wikidata.org/prop/direct/P279> *) <http://www.wikidata.org/entity/Q515> .  ?var1  <http://www.wikidata.org/prop/direct/P31>  <http://www.wikidata.org/entity/Q644371> .  ?var1  ?var5  ?var2 .  ?var1  <http://www.wikidata.org/prop/direct/P238>  ?var3 . SERVICE  <http://wikiba.se/ontology#around>   {    ?var2  <http://www.wikidata.org/prop/direct/P625>  ?var6 .    <http://www.bigdata.com/rdf#serviceParam>  <http://wikiba.se/ontology#center>  "POINT(-90 30)"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .    <http://www.bigdata.com/rdf#serviceParam>  <http://wikiba.se/ontology#radius>  "200".    <http://www.bigdata.com/rdf#serviceParam>  <http://wikiba.se/ontology#distance>  ?var7 .  } SERVICE  <http://wikiba.se/ontology#label>   {    <http://www.bigdata.com/rdf#serviceParam>  <http://wikiba.se/ontology#language>  "en".  } OPTIONAL {  ?var2  <http://www.wikidata.org/prop/direct/P625>  ?var4 . }}ORDER BY ASC( ?var7 )LIMIT 1
 
     public static void main(String[] args)
             throws IOException, CloneNotSupportedException, ParseException

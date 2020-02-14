@@ -1,5 +1,7 @@
 package cl.utfsm.di.RDFDifferentialPrivacy.Run;
 
+import cl.utfsm.di.RDFDifferentialPrivacy.DataSource;
+import cl.utfsm.di.RDFDifferentialPrivacy.EndpointDataSource;
 import static symjava.symbolic.Symbol.x;
 
 import java.io.File;
@@ -43,8 +45,8 @@ public class RunSymbolic
 
     private static Logger logger = LogManager
             .getLogger(RunSymbolic.class.getName());
-    
- // privacy budget
+
+    // privacy budget
     private static double EPSILON = 0.1;
 
     private static String queryString = "";
@@ -55,16 +57,22 @@ public class RunSymbolic
     private static String endpoint = "";
     private static boolean evaluation = false;
 
-
     public static void main(String[] args)
             throws IOException, CloneNotSupportedException, ExecutionException
     {
-        
+
         parseInput(args);
 
         try
         {
-            HdtDataSource hdtDataSource = new HdtDataSource(dataFile);
+            DataSource dataSource = null;
+            if (dataFile.contains("http"))
+            {
+                dataSource = new EndpointDataSource(dataFile);
+            } else
+            {
+                dataSource = new HdtDataSource(dataFile);
+            }
 
             Path queryLocation = Paths.get(queryFile);
             if (Files.isRegularFile(queryLocation))
@@ -72,10 +80,8 @@ public class RunSymbolic
                 queryString = new Scanner(new File(queryFile))
                         .useDelimiter("\\Z").next();
                 logger.info(queryString);
-                runAnalysis(queryFile, queryString, hdtDataSource, outputFile,
-                        evaluation, endpoint, EPSILON);
-            }
-            else if (Files.isDirectory(queryLocation))
+                runAnalysis(queryFile, queryString, dataSource, outputFile, evaluation, EPSILON);
+            } else if (Files.isDirectory(queryLocation))
             {
                 Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
                         .filter(p -> p.toString().endsWith(".rq")).iterator();
@@ -89,21 +95,19 @@ public class RunSymbolic
                             .next();
                     logger.info(queryString);
                     runAnalysis(nextQuery.toString(), queryString,
-                            hdtDataSource, outputFile, evaluation, endpoint,
+                            dataSource, outputFile, evaluation,
                             EPSILON);
-                    logger.info("Cache stats: "
-                            + hdtDataSource.mostFrequenResultCache.stats());
+//                    logger.info("Cache stats: "
+//                            + dataSource.mostFrequenResultStats());
                 }
-            }
-            else
+            } else
             {
                 if (Files.notExists(queryLocation))
                 {
                     throw new FileNotFoundException("No query file");
                 }
             }
-        }
-        catch (IOException | CloneNotSupportedException e1)
+        } catch (IOException e1)
         {
             System.out.println("Exception: " + e1.getMessage());
             System.exit(-1);
@@ -111,8 +115,8 @@ public class RunSymbolic
     }
 
     private static void runAnalysis(String queryFile, String queryString,
-            HdtDataSource hdtDataSource, String outpuFile, boolean evaluation,
-            String endpoint, double EPSILON)
+            DataSource hdtDataSource, String outpuFile, boolean evaluation,
+            double EPSILON)
             throws IOException, CloneNotSupportedException, ExecutionException
     {
         int countQueryResult = hdtDataSource.executeCountQuery(queryString);
@@ -143,8 +147,7 @@ public class RunSymbolic
 
             hdtDataSource.setMostFreqValueMaps(starQueriesMap, triplePatterns);
 
-            long graphSize = hdtDataSource.getGraphSizeTriples(triplePatterns,
-                    endpoint);
+            long graphSize = hdtDataSource.getGraphSizeTriples(triplePatterns);
             logger.info("graph size " + graphSize);
             // delta parameter: use 1/n^2, with n = size of the data in the
             // query
@@ -161,8 +164,7 @@ public class RunSymbolic
                                 sensitivity, beta, k, graphSize);
                 logger.info("star query (smooth) sensitivity: "
                         + smoothSensitivity);
-            }
-            else
+            } else
             {
                 elasticStability = GraphElasticSensitivity
                         .calculateElasticSensitivityAtK(k, starQueriesMap,
@@ -210,16 +212,14 @@ public class RunSymbolic
             if (cmd.hasOption("q"))
             {
                 queryString = cmd.getOptionValue("q");
-            }
-            else
+            } else
             {
                 logger.info("Missing SPARQL query ");
             }
             if (cmd.hasOption("eps"))
             {
                 EPSILON = Double.parseDouble(cmd.getOptionValue("eps"));
-            }
-            else
+            } else
             {
                 logger.info("Missing SPARQL query ");
             }
@@ -229,24 +229,21 @@ public class RunSymbolic
                 // queryString = new Scanner(new File(queryFile))
                 // .useDelimiter("\\Z").next();
                 // transform into Jena Query object
-            }
-            else
+            } else
             {
                 logger.info("Missing SPARQL query file");
             }
             if (cmd.hasOption("d"))
             {
                 dataFile = cmd.getOptionValue("d");
-            }
-            else
+            } else
             {
                 logger.info("Missing data file");
             }
             if (cmd.hasOption("e"))
             {
                 endpoint = cmd.getOptionValue("e");
-            }
-            else
+            } else
             {
                 logger.info("Missing endpoint address");
             }
@@ -257,8 +254,7 @@ public class RunSymbolic
                 {
                     Files.createFile(Paths.get(outputFile));
                 }
-            }
-            else
+            } else
             {
                 logger.info("Missing output file");
             }
@@ -266,8 +262,7 @@ public class RunSymbolic
             {
                 evaluation = true;
             }
-        }
-        catch (ParseException e1)
+        } catch (ParseException e1)
         {
             System.out.println(e1.getMessage());
             System.exit(-1);
@@ -278,7 +273,7 @@ public class RunSymbolic
     private static void writeAnalysisResult(double scale, String queryFile,
             double ePSILON, boolean evaluation, int countQueryResult,
             Expr elasticStability, long graphSize, boolean starQuery,
-            HdtDataSource hdtDataSource, double EPSILON,
+            DataSource hdtDataSource, double EPSILON,
             Sensitivity smoothSensitivity, String outpuFile) throws IOException
     {
         SecureRandom random = new SecureRandom();
