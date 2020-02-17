@@ -20,4 +20,10 @@ public class MaxFreqQuery {
     public String getVariableString() {
         return variable;
     }
+    
+    @Override
+    public String toString(){
+        return query;
+    }
+            
 }

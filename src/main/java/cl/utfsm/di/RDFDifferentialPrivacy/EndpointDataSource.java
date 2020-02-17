@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -152,7 +153,7 @@ public class EndpointDataSource implements DataSource
             }
             logger.info("construct query for graph size so far: " + construct);
             count += executeCountQuery(
-                    "SELECT (COUNT(*) as ?count) WHERE {" + construct + "}");
+                    "SELECT (COUNT(*) as ?count) WHERE { " + construct + "} ");
             logger.info("graph size so far: " + count);
         }
         return count;
@@ -161,7 +162,15 @@ public class EndpointDataSource implements DataSource
     @Override
     public int mostFrequenResult(MaxFreqQuery maxFreqQuery)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        try
+        {
+            return this.mostFrequenResultCache
+                    .get(maxFreqQuery);
+        } catch (ExecutionException ex)
+        {
+            java.util.logging.Logger.getLogger(HdtDataSource.class.getName()).log(Level.SEVERE, null, ex);
+            return -1;
+        }
     }
 
     @Override
@@ -228,6 +237,8 @@ public class EndpointDataSource implements DataSource
                 } else
                 {
                     List<Integer> mostFreqValues = new ArrayList<>();
+                    logger.info("query: " + query.getQuery());
+                    logger.info("variable: " + query.getVariableString());
                     mostFreqValues.add(
                             this.mostFrequenResultCache.get(query));
                     mapMostFreqValue.put(var, mostFreqValues);
@@ -257,10 +268,11 @@ public class EndpointDataSource implements DataSource
 
         variableName = variableName.replace("“", "").replace("”", "");
         String maxFreqQueryString = "select (count(?" + variableName
-                + ") as ?count) where { " + starQuery + " " + "} GROUP BY ?"
+                + ") as ?count) where { select ?" + variableName + " WHERE { " + starQuery + "} LIMIT 1000000 " + "} GROUP BY ?"
                 + variableName + " " + "ORDER BY ?" + variableName
                 + " DESC (?count) LIMIT 1 ";
 
+        logger.info("query at getMostFrequentResult: " + maxFreqQueryString);
         Query query = QueryFactory.create(maxFreqQueryString);
         try (QueryExecution qexec = (QueryEngineHTTP) QueryExecutionFactory
                 .sparqlService(datasource, query))
