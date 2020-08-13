@@ -1,8 +1,17 @@
 package cl.utfsm.di.RDFDifferentialPrivacy.Run;
 
-import cl.utfsm.di.RDFDifferentialPrivacy.DataSource;
-import cl.utfsm.di.RDFDifferentialPrivacy.EndpointDataSource;
-import static symjava.symbolic.Symbol.x;
+import cl.utfsm.di.RDFDifferentialPrivacy.*;
+import cl.utfsm.di.RDFDifferentialPrivacy.utils.Helper;
+import org.apache.commons.cli.*;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.sparql.core.TriplePath;
+import org.apache.jena.sparql.syntax.Element;
+import org.apache.jena.sparql.syntax.ElementGroup;
+import org.apache.jena.sparql.syntax.ElementPathBlock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import symjava.symbolic.Expr;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,38 +21,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.sparql.core.TriplePath;
-import org.apache.jena.sparql.syntax.Element;
-import org.apache.jena.sparql.syntax.ElementGroup;
-import org.apache.jena.sparql.syntax.ElementPathBlock;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import cl.utfsm.di.RDFDifferentialPrivacy.GraphElasticSensitivity;
-import cl.utfsm.di.RDFDifferentialPrivacy.HdtDataSource;
-import cl.utfsm.di.RDFDifferentialPrivacy.Sensitivity;
-import cl.utfsm.di.RDFDifferentialPrivacy.utils.Helper;
-import symjava.symbolic.Expr;
+import static symjava.symbolic.Symbol.x;
 
 public class RunSymbolic
 {
 
-    private static Logger logger = LogManager
+    private static final Logger logger = LogManager
             .getLogger(RunSymbolic.class.getName());
 
     // privacy budget
@@ -51,7 +37,7 @@ public class RunSymbolic
 
     private static String queryString = "";
     private static String queryFile = "";
-    private static String queryDir = "";
+    private static final String queryDir = "";
     private static String dataFile = "";
     private static String outputFile = "";
     private static String endpoint = "";
@@ -65,7 +51,7 @@ public class RunSymbolic
 
         try
         {
-            DataSource dataSource = null;
+            DataSource dataSource;
             if (dataFile.contains("http"))
             {
                 dataSource = new EndpointDataSource(dataFile);
@@ -86,17 +72,20 @@ public class RunSymbolic
                 Iterator<Path> filesPath = Files.list(Paths.get(queryFile))
                         .filter(p -> p.toString().endsWith(".rq")).iterator();
                 logger.info("Running analysis to DIRECTORY: " + queryLocation);
-                while (filesPath.hasNext())
-                {
+                while (filesPath.hasNext()) {
                     Path nextQuery = filesPath.next();
                     logger.info("Running analysis to query: "
                             + nextQuery.toString());
                     queryString = new Scanner(nextQuery).useDelimiter("\\Z")
                             .next();
-                    logger.info(queryString);
-                    runAnalysis(nextQuery.toString(), queryString,
-                            dataSource, outputFile, evaluation,
-                            EPSILON);
+                    logger.debug(queryString);
+                    try {
+                        runAnalysis(nextQuery.toString(), queryString,
+                                dataSource, outputFile, evaluation,
+                                EPSILON);
+                    } catch (Exception e) {
+                        logger.error("query failed!!: " + nextQuery.toString());
+                    }
 //                    logger.info("Cache stats: "
 //                            + dataSource.mostFrequenResultStats());
                 }
@@ -122,11 +111,11 @@ public class RunSymbolic
         int countQueryResult = hdtDataSource.executeCountQuery(queryString);
         Query q = QueryFactory.create(queryString);
 
-        List<List<String>> triplePatterns = new ArrayList();
+        List<List<String>> triplePatterns = new ArrayList<>();
 
         ElementGroup queryPattern = (ElementGroup) q.getQueryPattern();
         List<Element> elementList = queryPattern.getElements();
-        Sensitivity smoothSensitivity = null;
+        Sensitivity smoothSensitivity;
         Element element = elementList.get(0);
         boolean starQuery = false;
         if (element instanceof ElementPathBlock)
@@ -153,8 +142,7 @@ public class RunSymbolic
             // query
             double DELTA = 1 / (Math.pow(graphSize, 2));
             double beta = EPSILON / (2 * Math.log(2 / DELTA));
-            if (Helper.isStarQuery(q))
-            {
+            if (Helper.isStarQuery(q)) {
                 starQuery = true;
                 elasticStability = x;
                 Sensitivity sensitivity = new Sensitivity(1.0,
@@ -164,17 +152,20 @@ public class RunSymbolic
                                 sensitivity, beta, k, graphSize);
                 logger.info("star query (smooth) sensitivity: "
                         + smoothSensitivity);
-            } else
-            {
-                elasticStability = GraphElasticSensitivity
-                        .calculateElasticSensitivityAtK(k, starQueriesMap,
-                                EPSILON, hdtDataSource,
-                                hdtDataSource.getMapMostFreqValue(),
-                                hdtDataSource.getMapMostFreqValueStar());
+            } else {
+//                elasticStability = GraphElasticSensitivity
+//                        .calculateSensitivity(k, starQueriesMap,
+//                                EPSILON, hdtDataSource);
 
-                logger.info("Elastic Stability: " + elasticStability);
+                List<StarQuery> listStars = new ArrayList<>();
+                for (List<TriplePath> tp : starQueriesMap.values()) {
+                    listStars.add(new StarQuery(tp));
+                }
+                StarQuery sq = GraphElasticSensitivity.calculateSensitivity(k, listStars, EPSILON, hdtDataSource);
+
+                logger.info("Elastic Stability: " + sq.getElasticStability());
                 smoothSensitivity = GraphElasticSensitivity
-                        .smoothElasticSensitivity(elasticStability, 0, beta, k,
+                        .smoothElasticSensitivity(sq.getElasticStability(), 0, beta, k,
                                 graphSize);
                 logger.info("Path Smooth Sensitivity: "
                         + smoothSensitivity.getSensitivity());

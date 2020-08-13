@@ -1,47 +1,39 @@
 package cl.utfsm.di.RDFDifferentialPrivacy;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.jena.graph.Node_URI;
 import org.apache.jena.graph.Node_Variable;
 import org.apache.jena.sparql.core.TriplePath;
-
 import symjava.symbolic.Expr;
 
-public class StarQuery
-{
-    private List<TriplePath> triples;
+import java.util.ArrayList;
+import java.util.List;
+
+public class StarQuery implements Comparable<StarQuery> {
+    private final List<TriplePath> triples;
 
     // the smoothed sensitivity of the star query
     private Sensitivity querySentitivity;
 
-    private int keyCardinality;
-
     // elastic stability is the formula by which we calculate the sensitivity,
     // only appears when there are more than two star queries
     private Expr elasticStability;
-    
-    private MaxFreqValue maxFrequency;
 
-    public StarQuery(List<TriplePath> triples)
-    {
+    private Expr mpValue;
+
+    public StarQuery(List<TriplePath> triples) {
         this.triples = triples;
     }
 
-    public StarQuery()
-    {
-        this.triples = new ArrayList<TriplePath>();
+    public StarQuery() {
+        this.triples = new ArrayList<>();
     }
 
-    public boolean addStarQuery(List<TriplePath> triples)
-    {
+    public boolean addStarQuery(List<TriplePath> triples) {
         return this.triples.addAll(triples);
     }
 
-    public List<String> getVariables()
-    {
-        List<String> variables = new ArrayList<String>();
+    public List<String> getVariables() {
+        List<String> variables = new ArrayList<>();
         for (TriplePath triplePath : triples)
         {
             if (triplePath.getSubject().isVariable())
@@ -125,33 +117,26 @@ public class StarQuery
         return triples;
     }
 
-    public Sensitivity getQuerySentitivity()
-    {
-        return querySentitivity;
-    }
-
-    public void setQuerySentitivity(Sensitivity res)
-    {
-        this.querySentitivity = res;
-    }
-
-    public Expr getElasticStability()
-    {
+    public Expr getElasticStability() {
         return elasticStability;
     }
 
-    public void setElasticStability(Expr elasticStability)
-    {
+    public void setElasticStability(Expr elasticStability) {
         this.elasticStability = elasticStability;
     }
 
-    public MaxFreqValue getMaxFrequency()
-    {
-        return maxFrequency;
+    public Expr getMostPopularValue() {
+        return mpValue;
     }
 
-    public void setMaxFrequency(MaxFreqValue maxFrequency)
-    {
-        this.maxFrequency = maxFrequency;
+    public void setMostPopularValue(Expr mpValue) {
+        this.mpValue = mpValue;
+    }
+
+    @Override
+    public int compareTo(StarQuery o) {
+        List<String> joinVariables = o.getVariables();
+        joinVariables.retainAll(this.getVariables());
+        return joinVariables.size();
     }
 }
