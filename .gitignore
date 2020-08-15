@@ -200,3 +200,5 @@ buildNumber.properties
 /resources/watdiv.100M.nt.hdt
 /resources/watdiv.100M.nt.hdt.index.v1-1
 /.apt_generated_tests/
+/src/main/java/cl/utfsm/di/RDFDifferentialPrivacy/DataSource.java
+/src/main/java/cl/utfsm/di/RDFDifferentialPrivacy/EndpointDataSource.java

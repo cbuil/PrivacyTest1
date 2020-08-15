@@ -19,21 +19,6 @@ public class GraphElasticSensitivity {
     private static final Logger logger = LogManager
             .getLogger(GraphElasticSensitivity.class.getName());
 
-    public static double setOfMappingsSensitivity(Expr elasticSensitivity,
-                                                  double prevSensitivity, double beta, int k) {
-        Func f1 = new Func("f1", elasticSensitivity);
-        BytecodeFunc func1 = f1.toBytecodeFunc();
-
-        double smoothSensitivity = Math.exp(-k * beta) * func1.apply(k);
-
-        if (func1.apply(0) == 0 || (smoothSensitivity < prevSensitivity)) {
-            return prevSensitivity;
-        } else {
-            return setOfMappingsSensitivity(elasticSensitivity,
-                    smoothSensitivity, beta, k + 1);
-        }
-    }
-
     public static StarQuery calculateSensitivity(int k,
                                                  List<StarQuery> listStars, double EPSILON,
                                                  DataSource dataSource) throws ExecutionException, CloneNotSupportedException {
@@ -121,11 +106,29 @@ public class GraphElasticSensitivity {
     /*
      * mostPopularValue(joinVariable a, StarQuery starQuery, DataSource)
      */
-    private static Expr mostPopularValue(String var, StarQuery starQuery,
+    private static Expr mostPopularValue(String joinVar, StarQuery starQuery,
                                          DataSource dataSource) {
-        // base case: mp(a,s_1,G)
+
         Expr expr = x;
-        expr = expr.plus(dataSource.mostFrequenResult(new MaxFreqQuery(starQuery.toString(), var)));
+        expr = expr.plus(dataSource.mostFrequenResult(new MaxFreqQuery(starQuery.toString(), joinVar)));
+//        if (starQuery.getPrevQueries().isEmpty()) {
+//            // base case: mp(a,s_1,G) = mp(a,s_1,G) + x
+//            expr = expr.plus(dataSource.mostFrequenResult(new MaxFreqQuery(starQuery.toString(), joinVar)));
+//        } else {
+//            // mfk(a1, r1, x)mfk(a3, r2, x) (cuando a_2 = a_3) y a_1 \in r_1
+//            if(starQuery.getPrevQueries().get(0).getVariables().contains(joinVar)){
+//                Expr recursiveMpValue1 = mostPopularValue(joinVar, starQuery.getPrevQueries().get(0), dataSource);
+//                List<String> joinVariables = starQuery.getPrevQueries().get(0).getVariables();
+//                Expr recursiveMpValue2 = mostPopularValue(joinVariables.get(0), starQuery.getPrevQueries().get(1), dataSource);
+//                return recursiveMpValue2.multiply(recursiveMpValue1);
+//
+//            } else{
+//                Expr recursiveMpValue1 = mostPopularValue(joinVar, starQuery.getPrevQueries().get(1), dataSource);
+//                List<String> joinVariables = starQuery.getPrevQueries().get(1).getVariables();
+//                joinVariables.retainAll(starQuery.getPrevQueries().get(1).getVariables());
+//                return recursiveMpValue1.multiply(mostPopularValue(joinVariables.get(0), starQuery.getPrevQueries().get(0), dataSource));
+//            }
+//        }
         return expr;
     }
 

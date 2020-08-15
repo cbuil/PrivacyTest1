@@ -11,8 +11,7 @@ import java.util.List;
 public class StarQuery implements Comparable<StarQuery> {
     private final List<TriplePath> triples;
 
-    // the smoothed sensitivity of the star query
-    private Sensitivity querySentitivity;
+    private List<StarQuery> prevQueries;
 
     // elastic stability is the formula by which we calculate the sensitivity,
     // only appears when there are more than two star queries
@@ -22,10 +21,12 @@ public class StarQuery implements Comparable<StarQuery> {
 
     public StarQuery(List<TriplePath> triples) {
         this.triples = triples;
+        this.prevQueries = new ArrayList<>();
     }
 
     public StarQuery() {
         this.triples = new ArrayList<>();
+        this.prevQueries = new ArrayList<>();
     }
 
     public boolean addStarQuery(List<TriplePath> triples) {
@@ -132,6 +133,10 @@ public class StarQuery implements Comparable<StarQuery> {
     public void setMostPopularValue(Expr mpValue) {
         this.mpValue = mpValue;
     }
+
+    public List<StarQuery> getPrevQueries(){return prevQueries;}
+
+    public void addPrevQuery(StarQuery q) {prevQueries.add(q);}
 
     @Override
     public int compareTo(StarQuery o) {
