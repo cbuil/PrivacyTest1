@@ -169,6 +169,7 @@ public class RunSymbolic
                                 graphSize);
                 logger.info("Path Smooth Sensitivity: "
                         + smoothSensitivity.getSensitivity());
+                elasticStability = sq.getElasticStability();
             }
 
             // add noise using Laplace Probability Density Function
