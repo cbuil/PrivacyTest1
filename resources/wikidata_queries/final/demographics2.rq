@@ -1,0 +1,25 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX schema: <http://schema.org/>
+PREFIX p: <http://www.wikidata.org/prop/>
+PREFIX psv: <http://www.wikidata.org/prop/statement/value/>
+SELECT  (COUNT(?person) as ?count)
+WHERE
+{
+  ?person wdt:P31 wd:Q5;
+          p:P570 ?tmp .
+  ?tmp psv:P570 ?t1 .
+  #  ?t1            wikibase:timePrecision ?precision .
+    ?t1            wikibase:timeValue ?date . 
+  #BIND(CONCAT(STR(YEAR(?date)),"-",STR(MONTH(?date))) as ?yearmonth).
+  FILTER( ?date >= "2000-01-01T00:00:00"^^xsd:dateTime )
+ # FILTER( ?precision >= "10"^^xsd:integer ) # precision of at least month
+}
+#GROUP BY ?yearmonth
+
+
+	
