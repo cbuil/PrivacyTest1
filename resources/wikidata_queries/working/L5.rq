@@ -1,15 +1,22 @@
-# Most cited female authors, TLE
-# humans without children, 256
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 PREFIX wd: <http://www.wikidata.org/entity/>
 PREFIX schema: <http://schema.org/>
-SELECT (COUNT(?publication) AS ?count)
+PREFIX p: <http://www.wikidata.org/prop/>
+PREFIX psv: <http://www.wikidata.org/prop/statement/value/>
+SELECT  (COUNT(?person) as ?count)
 WHERE
 {
-    ?item wdt:P2860 ?publication . #citations
-    ?publication wdt:P50 ?author . #authors
-    ?author wdt:P21 wd:Q6581072. #females
+    ?person wdt:P31 wd:Q5 .
+    ?person p:P570 ?tmp .
+    ?tmp psv:P570 ?t1 .
+    ?t1 wikibase:timeValue ?date . 
+  FILTER( ?date >= "2000-01-01T00:00:00"^^xsd:dateTime )
+}
 
-} 
+
+
+	
