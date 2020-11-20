@@ -1,0 +1,171 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>GitPrivacyTest1</groupId>
+	<artifactId>GitPrivacyTest1</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.0</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.6.0</version>
+				<executions>
+					<execution>
+						<id>run-evaluation</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunSymbolic</mainClass>
+						</configuration>
+					</execution>
+					<!-- <execution> <id>run-dp-dir</id> <configuration> <mainClass>cl.utfsm.di.RDFDifferentialPrivacySymbolic.RunDirectory</mainClass> 
+						</configuration> </execution> -->
+					<execution>
+						<id>run-query-gen</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferential.Run.GenerateCountQueries</mainClass>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run-query</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunQuery</mainClass>
+						</configuration>
+					</execution>
+                                        <execution>
+						<id>run-parallel</id>
+						<configuration>
+							<mainClass>cl.utfsm.di.RDFDifferentialPrivacy.Run.RunQueriesParallel</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
+	</build>
+	<dependencies>
+
+		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.6</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-arq</artifactId>
+			<version>3.7.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-core -->
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-core</artifactId>
+			<version>3.7.0</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.jena/apache-jena-libs -->
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>apache-jena-libs</artifactId>
+			<version>3.7.0</version>
+			<type>pom</type>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-iri -->
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-iri</artifactId>
+			<version>3.7.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+			<version>3.6.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.rdfhdt/hdt-jena -->
+		<!-- https://mvnrepository.com/artifact/eu.wdaqua/hdt-jena -->
+		<dependency>
+			<groupId>eu.wdaqua</groupId>
+			<artifactId>hdt-jena</artifactId>
+			<version>2.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/eu.wdaqua/hdt-api -->
+		<dependency>
+			<groupId>eu.wdaqua</groupId>
+			<artifactId>hdt-api</artifactId>
+			<version>2.1</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/eu.wdaqua/hdt-java-core -->
+		<dependency>
+			<groupId>eu.wdaqua</groupId>
+			<artifactId>hdt-java-core</artifactId>
+			<version>2.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/eu.wdaqua/hdt-java-parent -->
+		<dependency>
+			<groupId>eu.wdaqua</groupId>
+			<artifactId>hdt-java-parent</artifactId>
+			<version>2.1</version>
+			<type>pom</type>
+		</dependency>
+		<dependency>
+			<groupId>symjava.symbolic</groupId>
+			<artifactId>SymJava</artifactId>
+			<version>1.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.6.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>28.1-jre</version>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+</project>
