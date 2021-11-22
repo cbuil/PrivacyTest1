@@ -50,7 +50,7 @@ public class RunSparqlQuery implements Callable<String>
             ResultSet results = qexec.execSelect();
             results = ResultSetFactory.copyResults(results);
             qexec.close();
-             QuerySolution soln = results.nextSolution();
+            QuerySolution soln = results.nextSolution();
             RDFNode x = soln.get(soln.varNames().next());
             int countResult = x.asLiteral().getInt();
             logger.info("count query result (dataset): " + countResult);
