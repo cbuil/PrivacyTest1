@@ -35,10 +35,12 @@ public class GetPrivacySchema{
         String urisFile = "";
         String propertiesFile = "";
         String endpoint = "";
+        String outputFile = "";
 
         options.addOption("f", "qFile", true, "input URIs File");
         options.addOption("p", "pFile", true, "input properties file");
-        options.addOption("e", "endpoint", true, "SPATQL endpoint o TDB dir");
+        options.addOption("e", "endpoint", true, "SPARQL endpoint o TDB dir");
+        options.addOption("o", "outoput", true, "Output file");
         CommandLineParser parser = new DefaultParser();
         try
         {
@@ -64,6 +66,13 @@ public class GetPrivacySchema{
             {
                 logger.info("Missing endpoint");
             }
+            if (cmd.hasOption("o"))
+            {
+                outputFile = cmd.getOptionValue("o");
+            } else
+            {
+                logger.info("Missing endpoint");
+            }
 
         }  catch (ParseException e1)
         {
@@ -75,7 +84,7 @@ public class GetPrivacySchema{
         // Dataset dataset = TDBFactory.createDataset(endpoint);
         // dataset.begin(ReadWrite.READ);
         try (Writer writer = new BufferedWriter(new OutputStreamWriter(
-              new FileOutputStream("filename.txt"), "utf-8"))) {
+              new FileOutputStream(outputFile), "utf-8"))) {
               final List<String> propertiesList = Files.readAllLines(Paths.get(propertiesFile));
               try (Stream<String> stream = Files.lines(Paths.get(urisFile))) {
                   stream.forEach(uri-> {
