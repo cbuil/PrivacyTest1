@@ -7,7 +7,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -18,7 +17,6 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.query.ResultSetFactory;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -93,8 +91,10 @@ public class GetPrivacySchema{
                                 try {
                                     if(x.isLiteral()){
                                         writer.write("<" + uri + "> " + "<" + p + "> \"" + x.asNode().getLiteral() + "\" .\n");
-                                    } else {
+                                    } else if (x.isURIResource()) {
                                         writer.write("<" + uri + "> " + "<" + p + "> <" + x.asNode().getURI() + "> .\n");
+                                    } else {
+                                        // do nothing
                                     }
                                 } catch (IOException e) {
                                     //TODO Auto-generated catch block
