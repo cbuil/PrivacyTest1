@@ -72,38 +72,36 @@ public class GetPrivacySchema{
             System.out.println(e1.getMessage());
             System.exit(-1);
         }
-        List<String> propertiesList = new ArrayList<String>();
-
-        try (Stream<String> stream = Files.lines(Paths.get(propertiesFile))) {
-            stream.forEach((uri)-> {
-                    propertiesList.add(uri);
-            });
-        } catch(Exception e){
-            logger.info(e.getMessage());
-            System.exit(-1);
-        }
+        //List<String> propertiesList = new ArrayList<String>();
         final String endpointURL = endpoint;
         // Dataset dataset = TDBFactory.createDataset(endpoint);
         // dataset.begin(ReadWrite.READ);
         try (Writer writer = new BufferedWriter(new OutputStreamWriter(
               new FileOutputStream("filename.txt"), "utf-8"))) {
+              final List<String> propertiesList = Files.readAllLines(Paths.get(propertiesFile));
               try (Stream<String> stream = Files.lines(Paths.get(urisFile))) {
-                  stream.forEach((uri)-> {
+                  stream.forEach(uri-> {
+                        System.out.println(uri);
                         for (String p : propertiesList) {
                             String queryString  = "SELECT * WHERE { <" + uri + "> <" + p + "> ?o }";
                             Query query = QueryFactory.create(queryString);
                             QueryExecution qexec = QueryExecutionFactory.sparqlService(endpointURL, query);
                             ResultSet results = qexec.execSelect();
-                                results = ResultSetFactory.copyResults(results);
-                                qexec.close();
+                            while(results.hasNext()){
                                 QuerySolution soln = results.nextSolution();
                                 RDFNode x = soln.get("?o");
                                 try {
-                                    writer.write("<" + uri + "> " + "<" + p + "> <" + x.asNode().getURI() + "> .\n");
+                                    if(x.isLiteral()){
+                                        writer.write("<" + uri + "> " + "<" + p + "> \"" + x.asNode().getLiteral() + "\" .\n");
+                                    } else {
+                                        writer.write("<" + uri + "> " + "<" + p + "> <" + x.asNode().getURI() + "> .\n");
+                                    }
                                 } catch (IOException e) {
-                                    // TODO Auto-generated catch block
+                                    //TODO Auto-generated catch block
                                     e.printStackTrace();
                                 }
+                            }
+                            qexec.close();
                         }
                     });
         }} catch(Exception e){
